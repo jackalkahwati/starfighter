@@ -1379,129 +1379,66 @@ function triggerDeathBlossom() {
         sounds.db_windup.play();
     }
     
-    // Create the visual effect container
-    const dbEffect = new THREE.Group();
-    dbEffect.position.copy(player.position);
-    scene.add(dbEffect);
-    
-    // Create the ring effect
-    const ringGeometry = new THREE.RingGeometry(2, 2.2, 32);
-    const ringMaterial = new THREE.MeshBasicMaterial({
-        color: 0xff00ff,
-        side: THREE.DoubleSide,
+    // Visual effect: Growing Wireframe Sphere
+    const sphereGeometry = new THREE.SphereGeometry(0.1, 16, 16); // Start small
+    const sphereMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff00ff, // Magenta color
+        wireframe: true,
         transparent: true,
-        opacity: 0.8
+        opacity: 0.9
     });
-    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-    ring.rotation.x = Math.PI / 2; // Align with ship orientation
-    dbEffect.add(ring);
-    
-    // Add a point light for glow effect
-    const pointLight = new THREE.PointLight(0xff00ff, 5, 10);
-    dbEffect.add(pointLight);
-    
-    // Animate the ring
-    let time = 0;
-    const ringAnimation = (dt) => {
-        time += dt;
-        ring.scale.setScalar(1 + Math.sin(time * 10) * 0.2);
-        ring.rotation.z += dt * 2;
-        // Make dbEffect follow player
-        dbEffect.position.copy(player.position);
-    };
-    ticker.add(ringAnimation);
+    const dbSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    dbSphere.position.copy(player.position); // Start at player position
+    scene.add(dbSphere);
     
     // Flash effect
     tronFlash();
     
-    // Start the Death Blossom after a short delay
+    // Start the main effect after a short windup delay
     setTimeout(() => {
-        // Play the main Death Blossom sound
+        // Play the main Death Blossom sound (can be different from windup)
         if (isSoundOn && sounds.deathBlossom) {
-            sounds.deathBlossom.play();
+            sounds.deathBlossom.play(); // Use the specific Death Blossom sound
         }
         
-        // Create and fire projectiles in a spiral pattern
-        let angle = 0;
-        const projectilesPerBurst = 4; // Fire 4 projectiles at once
-        const totalBursts = DB_PROJECTILES / projectilesPerBurst;
-        
-        const intervalId = setInterval(() => {
-            for (let i = 0; i < projectilesPerBurst; i++) {
-                const a = angle + (i * Math.PI * 2 / projectilesPerBurst);
-                const dir = new THREE.Vector3(Math.cos(a), Math.sin(a), 0);
-                
-                // Create special Death Blossom projectile
-                const bulletGeometry = new THREE.SphereGeometry(0.3, 8, 8);
-                const bulletMaterial = new THREE.MeshBasicMaterial({
-                    color: 0xff00ff,
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
-                bulletMesh.position.copy(player.position);
-                
-                // Add glow effect
-                const glowLight = new THREE.PointLight(0xff00ff, 2, 5);
-                bulletMesh.add(glowLight);
-                
-                scene.add(bulletMesh);
-                bullets.push({
-                    pos: bulletMesh.position,
-                    vel: dir.multiplyScalar(200),
-                    type: 'deathBlossom',
-                    dmg: 5,
-                    mesh: bulletMesh
-                });
+        // Animate the sphere expansion and fade
+        let time = 0;
+        const maxRadius = 25; // How large the sphere grows
+        const sphereAnimation = (dt) => {
+            time += dt;
+            const progress = time / (DB_DURATION / 1000); // Duration in seconds
+            
+            if (progress >= 1) {
+                scene.remove(dbSphere);
+                ticker.delete(sphereAnimation);
+                // Start cooldown after effect finishes
+                setTimeout(() => {
+                    dbReady = true;
+                    document.getElementById('dbLbl').textContent = 'DEATH BLOSSOM READY';
+                }, DB_COOLDOWN - DB_DURATION);
+                return;
             }
             
-            // Also fire in Z direction (forward/backward)
-            const zAngles = [0, Math.PI]; // forward and backward
-            for (let zAngle of zAngles) {
-                const dir = new THREE.Vector3(Math.cos(angle) * 0.3, Math.sin(angle) * 0.3, Math.cos(zAngle));
-                
-                const bulletGeometry = new THREE.SphereGeometry(0.3, 8, 8);
-                const bulletMaterial = new THREE.MeshBasicMaterial({
-                    color: 0x00ffff, // Different color for Z-axis projectiles
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
-                bulletMesh.position.copy(player.position);
-                
-                // Add glow effect
-                const glowLight = new THREE.PointLight(0x00ffff, 2, 5);
-                bulletMesh.add(glowLight);
-                
-                scene.add(bulletMesh);
-                bullets.push({
-                    pos: bulletMesh.position,
-                    vel: dir.multiplyScalar(200),
-                    type: 'deathBlossom',
-                    dmg: 5,
-                    mesh: bulletMesh
-                });
-            }
+            // Update sphere scale (lerp for smoother growth)
+            const currentRadius = MathUtils.lerp(0.1, maxRadius, progress);
+            dbSphere.scale.setScalar(currentRadius / 0.1); // Scale relative to initial radius
             
-            angle += 0.5; // Rotate the pattern faster for more visible effect
+            // Update opacity (fade out)
+            dbSphere.material.opacity = 0.9 * (1 - progress);
             
-            // Flash effect for each burst
-            tronFlash();
-            
-        }, DB_DURATION / totalBursts); // Evenly space the bursts over the duration
+            // Keep sphere centered on player
+            dbSphere.position.copy(player.position);
+        };
+        ticker.add(sphereAnimation);
         
-        // Stop firing after duration
-        setTimeout(() => {
-            clearInterval(intervalId);
-            ticker.delete(ringAnimation);
-            scene.remove(dbEffect);
-            
-            // Start cooldown
-            setTimeout(() => {
-                dbReady = true;
-                document.getElementById('dbLbl').textContent = 'DEATH BLOSSOM READY';
-            }, DB_COOLDOWN - DB_DURATION);
-        }, DB_DURATION);
+        // --- Remove Projectile Firing Logic --- 
+        // let angle = 0;
+        // const projectilesPerBurst = 4; 
+        // const totalBursts = DB_PROJECTILES / projectilesPerBurst;
+        // const intervalId = setInterval(() => { ... }, DB_DURATION / totalBursts);
+        // setTimeout(() => { clearInterval(intervalId); ... }, DB_DURATION);
+        // --- End Removed Projectile Logic --- 
+
     }, 500); // 500ms windup time
 }
 
