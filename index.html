@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Starfighter: Frontier Rising — Synthwave Edition (v3.1)</title>
+  <style>
+    html,body{margin:0;padding:0;background:#000;overflow:hidden;font-family:monospace;color:#0ff}
+    #ui{position:fixed;top:16px;left:16px;right:16px;z-index:60;text-shadow:0 0 6px #0ff;pointer-events:none;display:flex;justify-content:space-between;font-size:14px}
+    #ui .left, #ui .right {display:flex;align-items:flex-start;flex-direction:column;}
+    #ui .center {text-align:center;}
+    #ui span{margin:4px 0;letter-spacing:1px}
+    .shield-bar {display:inline-block;width:120px;height:10px;background:rgba(0,255,255,0.2);position:relative;margin-left:8px;border:1px solid #0ff}
+    .shield-bar .fill {position:absolute;top:0;left:0;height:100%;background:#0ff;transition:width 0.3s}
+    #hud{position:fixed;top:0;left:0;pointer-events:none;z-index:50;width:100%;height:100%}
+    #radar{position:fixed;width:500px;height:500px;top:50%;left:50%;transform:translate(-50%, -50%);border:2px solid #f0f;border-radius:50%;box-shadow:0 0 20px rgba(255,0,255,0.5);pointer-events:none;z-index:40;opacity:0.5}
+    #radar:before{content:'';position:absolute;width:400px;height:400px;top:50px;left:50px;border:1px solid #0ff;border-radius:50%}
+    #radar:after{content:'';position:absolute;width:50px;height:50px;top:225px;left:225px;border:1px solid #f0f;border-radius:50%}
+    #radar .line{position:absolute;top:0;left:250px;width:1px;height:500px;background:#f0f;transform-origin:bottom center}
+    #radar .line:nth-child(2){transform:rotate(45deg)}
+    #radar .line:nth-child(3){transform:rotate(90deg)}
+    #radar .line:nth-child(4){transform:rotate(135deg)}
+    #banner{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);font-size:46px;color:#ff00ff;text-shadow:0 0 12px #ff00ff;opacity:0;transition:opacity .6s;z-index:80;pointer-events:none;letter-spacing:4px}
+    #audioIndicator{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);color:#ff00ff;padding:8px 16px;border-radius:20px;cursor:pointer;z-index:1000;border:1px solid #f0f;pointer-events:auto}
+    #title{position:fixed;top:30px;left:0;width:100%;text-align:center;font-size:40px;letter-spacing:12px;color:#f0f;text-shadow:0 0 15px #f0f,0 0 25px rgba(255,0,255,0.5);pointer-events:none;z-index:45;font-weight:bold}
+    #title span{background:linear-gradient(to bottom, #f0f, #0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 8px rgba(0,255,255,0.7))}
+    .target-marker{position:absolute;border:1px solid #f0f;width:60px;height:60px;transform:translate(-50%, -50%);opacity:1;transition:opacity 0.3s}
+    .target-marker:before,.target-marker:after{content:'';position:absolute;background:#f0f}
+    .target-marker:before{width:10px;height:1px;top:50%;left:-5px}
+    .target-marker:after{width:1px;height:10px;left:50%;top:-5px}
+    .target-marker .corner{position:absolute;width:10px;height:10px;border:1px solid #f0f}
+    .target-marker .corner:nth-child(1){top:-1px;left:-1px;border-right:none;border-bottom:none}
+    .target-marker .corner:nth-child(2){top:-1px;right:-1px;border-left:none;border-bottom:none}
+    .target-marker .corner:nth-child(3){bottom:-1px;left:-1px;border-right:none;border-top:none}
+    .target-marker .corner:nth-child(4){bottom:-1px;right:-1px;border-left:none;border-top:none}
+    .grid-floor{position:fixed;bottom:0;left:0;width:100%;height:20%;background:linear-gradient(to top, rgba(255,0,255,0.7), transparent);z-index:-1;perspective:800px;pointer-events:none;opacity:0.5}
+    .grid-floor .grid{position:absolute;bottom:0;left:0;width:100%;height:100%;background-image:linear-gradient(to right, rgba(255,0,255,0.9) 1px, transparent 1px), 
+                     linear-gradient(to bottom, rgba(255,0,255,0.9) 1px, transparent 1px);
+    background-size:40px 40px;transform:rotateX(60deg);transform-origin:bottom center}
+    canvas{display:block}
+  </style>
+  <!-- Three.js r150 classic build (works in Safari) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+  <!-- BufferGeometryUtils -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/examples/js/utils/BufferGeometryUtils.js"></script>
+  <!-- Howler.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+</head>
+<body>
+  <div id="title"><span>STARFIGHTER</span></div>
+
+  <div id="radar">
+    <div class="line"></div>
+    <div class="line"></div>
+    <div class="line"></div>
+    <div class="line"></div>
+  </div>
+
+  <div class="grid-floor">
+    <div class="grid"></div>
+  </div>
+
+  <div class="target-marker" id="targetMarker">
+    <div class="corner"></div>
+    <div class="corner"></div>
+    <div class="corner"></div>
+    <div class="corner"></div>
+  </div>
+
+  <canvas id="hud"></canvas>
+  <div id="ui">
+    <div class="left">
+      <span id="levelLbl">LEVEL 1</span>
+      <span>SHIELD <div class="shield-bar"><div class="fill" style="width:82%"></div></div></span>
+      <span id="scoreLbl">SCORE: 0</span>
+      <span id="weaponLbl">Pulse Laser</span>
+    </div>
+    <div class="center">
+      <span id="targetInfo"></span>
+    </div>
+    <div class="right">
+      <span id="dbLbl">DEATH BLOSSOM READY</span>
+      <span id="seoge">S.E.O.G.E ONLINE</span>
+    </div>
+  </div>
+  <div id="banner">LEVEL 1</div>
+  <div id="audioIndicator">🔊 Click to enable sound</div>
+
+  <script>
+/* ============================================================== 
+   Starfighter: Frontier Rising – full 5‑level arcade narrative 
+   Controls:  Arrows  ·   Space = laser  ·   D = Death Blossom 
+   ============================================================== */
+const { Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight, ConeGeometry, TorusGeometry, MeshStandardMaterial, MeshBasicMaterial, Mesh, Vector3, BufferGeometry, Float32BufferAttribute, PointsMaterial, Points, Clock, MathUtils, SphereGeometry, Group, LineDashedMaterial, LineBasicMaterial, Line, RingGeometry, PlaneGeometry, LineSegments } = THREE;
+
+let scene, camera, renderer, clock;
+let player, playerShip, playerSpeed = 0.2;
+let bullets = [];
+let enemies = [];
+let score = 0;
+let level = 1;
+let lastSpawnTime = 0;
+let spawnInterval = 1400; // Initial spawn interval for Level 1 (in ms)
+let enemySpeed = 0.05;
+let playerShield = 100;
+let hudContext;
+let sounds = {};
+
+// Keep track of pressed keys
+const keysPressed = {};
+
+// Death Blossom state
+let dbReady = true;
+const DB_COOLDOWN = 15000; // milliseconds
+const DB_DURATION = 3000;  // 3 seconds of effect
+const DB_PROJECTILES = 16; // Number of projectiles in the burst
+
+// Insert new global flag for audio warmup after existing globals
+let audioWarmedUp = false;
+let isSoundOn = false;
+
+// --- New Global Weapon Variables ---
+const WEAPONS = { PULSE: 0, TWIN: 1, PLASMA: 2, RAIL: 3 };
+let currentWeapon = WEAPONS.PULSE;
+const cooldown = [0.16, 0.125, 0.5, 1.0]; // seconds between shots
+let lastShot = 0;
+let missileReady = true;
+
+// Add the ticker utility for animations
+const ticker = new Set();
+
+// Create the flash overlay for the Tron effect
+const flash = document.createElement('div');
+Object.assign(flash.style, {
+  position: 'fixed', top: 0, left: 0, width: '100%', height: '4px',
+  background: '#00eaff', opacity: 0, zIndex: 70, boxShadow: '0 0 10px #0ff',
+  pointerEvents: 'none', transition: 'opacity .15s ease-out'
+});
+document.body.appendChild(flash);
+
+// Add new global variables after the existing ones
+const SHIELD_REGEN_RATE = 5; // Shield points per second
+const SHIELD_REGEN_DELAY = 3000; // ms to wait before shield starts regenerating
+let lastDamageTime = 0; // Track when player was last hit
+
+// Add new enemy behavior constants
+const ENEMY_BEHAVIORS = {
+    STRAIGHT: 0,
+    SINE_WAVE: 1,
+    CIRCLE_STRAFE: 2,
+    PURSUIT: 3
+};
+
+// Add after existing enemy-related variables
+let enemyFormations = [];
+const FORMATION_TYPES = {
+    V: 0,
+    WALL: 1,
+    DIAMOND: 2
+};
+
+function init() {
+    scene = new Scene();
+    clock = new Clock();
+    
+    camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 5, 15); // Slightly elevated view
+    
+    renderer = new WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x110022, 1); // Dark purple space background
+    document.body.appendChild(renderer.domElement);
+    
+    // Initialize HUD canvas
+    const hudCanvas = document.getElementById('hud');
+    hudCanvas.width = window.innerWidth;
+    hudCanvas.height = window.innerHeight;
+    hudContext = hudCanvas.getContext('2d');
+    
+    // Lights
+    const ambientLight = new AmbientLight(0x404040, 2);
+    scene.add(ambientLight);
+    const directionalLight = new DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(5, 10, 7.5);
+    scene.add(directionalLight);
+    
+    // Grid Helper (Floor)
+    const gridSize = 200;
+    const gridDivisions = 40;
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x00ffff, 0xff00ff);
+    gridHelper.position.y = -5; // Position it below the player
+    scene.add(gridHelper);
+    
+    // Starfield
+    const starsGeometry = new BufferGeometry();
+    const starsVertices = [];
+    for (let i = 0; i < 10000; i++) {
+        const x = MathUtils.randFloatSpread(2000);
+        const y = MathUtils.randFloatSpread(2000);
+        const z = MathUtils.randFloatSpread(2000);
+        starsVertices.push(x, y, z);
+    }
+    starsGeometry.setAttribute('position', new Float32BufferAttribute(starsVertices, 3));
+    const starsMaterial = new PointsMaterial({ color: 0xaaaaaa, size: 0.7, sizeAttenuation: true });
+    const starField = new Points(starsGeometry, starsMaterial);
+    scene.add(starField);
+    
+    // Player Ship Group
+    player = new Group();
+    scene.add(player);
+    
+    // Create a more complex ship model
+    playerShip = createPlayerShip();
+    player.add(playerShip);
+    
+    // Add engine glow
+    const engineGlow = new Mesh(
+        new SphereGeometry(0.2, 16, 16),
+        new MeshBasicMaterial({ 
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.7
+        })
+    );
+    engineGlow.position.z = 1;
+    player.add(engineGlow);
+    
+    // Create targeting system
+    createTargetingSystem();
+    
+    // Create background mountains
+    createMountains();
+    
+    // Setup sounds
+    setupSounds();
+    
+    // Event Listeners
+    window.addEventListener('resize', onWindowResize, false);
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+    
+    // Initialize HUD
+    updateHUD();
+    
+    // Radar setup
+    initRadar();
+
+    // Add the flash element to the body
+    document.body.appendChild(flash);
+
+    // Add event listener to audio indicator
+    document.getElementById('audioIndicator').addEventListener('click', function() {
+        if (!audioWarmedUp) {
+            // Initialize sounds on first click
+            audioWarmedUp = true;
+            isSoundOn = true;
+            Object.keys(sounds).forEach(key => {
+                // Play and immediately pause to load audio
+                sounds[key].play();
+                sounds[key].pause();
+            });
+            sounds.music.play();
+            this.textContent = '🔊 Sound ON';
+            this.style.backgroundColor = "rgba(255,0,255,0.3)";
+        } else {
+            // Toggle sound on/off
+            isSoundOn = !isSoundOn;
+            if (isSoundOn) {
+                sounds.music.play();
+                this.textContent = '🔊 Sound ON';
+                this.style.backgroundColor = "rgba(255,0,255,0.3)";
+            } else {
+                sounds.music.pause();
+                this.textContent = '🔇 Sound OFF';
+                this.style.backgroundColor = "rgba(0,0,0,0.3)";
+            }
+        }
+    });
+}
+
+function createPlayerShip() {
+    const shipGroup = new Group();
+    
+    // Main body
+    const bodyGeometry = new ConeGeometry(0.5, 2, 5);
+    const bodyMaterial = new MeshStandardMaterial({
+        color: 0xff00ff,
+        emissive: 0xff00ff,
+        emissiveIntensity: 0.5,
+        wireframe: true
+    });
+    const body = new Mesh(bodyGeometry, bodyMaterial);
+    body.rotation.x = Math.PI / 2; // Point forward
+    shipGroup.add(body);
+    
+    // Wings
+    const wingGeometry = new THREE.BoxGeometry(2, 0.1, 0.8);
+    const wingMaterial = new MeshStandardMaterial({
+        color: 0x00ffff,
+        emissive: 0x00ffff,
+        emissiveIntensity: 0.3,
+        wireframe: true
+    });
+    const wings = new Mesh(wingGeometry, wingMaterial);
+    wings.position.z = 0.4;
+    shipGroup.add(wings);
+    
+    // Cockpit
+    const cockpitGeometry = new SphereGeometry(0.3, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+    const cockpitMaterial = new MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: 0x00ffff,
+        emissiveIntensity: 0.3,
+        transparent: true,
+        opacity: 0.7
+    });
+    const cockpit = new Mesh(cockpitGeometry, cockpitMaterial);
+    cockpit.position.y = 0.2;
+    cockpit.rotation.x = Math.PI / 2;
+    shipGroup.add(cockpit);
+    
+    return shipGroup;
+}
+
+function createMountains() {
+    // Create a more detailed mountain geometry with more segments
+    const mountainGeometry = new PlaneGeometry(1000, 200, 80, 30);
+    
+    // Create a solid material with gradient colors for the base mountains
+    const mountainMaterial = new MeshStandardMaterial({
+        color: 0xff00ff,           // Magenta color
+        emissive: 0xff00ff,        // Strong emissive glow
+        emissiveIntensity: 0.5,    // Control glow intensity
+        wireframe: false,          // Solid, not wireframe
+        flatShading: true,         // Low-poly look
+        opacity: 1.0               // Full opacity
+    });
+
+    // Displace vertices to create more interesting mountain shapes
+    const positionAttribute = mountainGeometry.getAttribute('position');
+    const peakHeight = 50;         // Higher peaks for more visibility
+    const frequency = 0.04;
+    const secondaryFreq = 0.08;    // Secondary frequency for more detail
+
+    // Create array for vertex colors to make a gradient
+    const colors = [];
+    const color1 = new THREE.Color(0xff00ff);  // Magenta (top)
+    const color2 = new THREE.Color(0xaa00ff);  // Purple (middle)
+    const color3 = new THREE.Color(0x330066);  // Dark purple (bottom)
+
+    for (let i = 0; i < positionAttribute.count; i++) {
+        const x = positionAttribute.getX(i);
+        const y = positionAttribute.getY(i);
+        
+        // More complex mountain generation with multiple frequencies
+        let z = Math.sin(x * frequency) * peakHeight;
+        z += Math.sin(x * frequency * 0.4 + 0.5) * peakHeight * 0.7;
+        z += Math.sin(x * secondaryFreq + 2) * 15;    // Increase detail depth
+        z += Math.cos(x * frequency * 0.3) * 20;      // Add variety
+        
+        // Add some randomness for texture
+        z += Math.random() * 8;
+        
+        // Higher y values (upper part of plane) get more height
+        const yInfluence = (y + 100) / 200;  // Normalize y to 0-1 range
+        z *= Math.max(0.1, yInfluence * 1.8);  // Scale height by y position
+        
+        // Only raise vertices above a certain height
+        if (y > -90) {
+            positionAttribute.setZ(i, Math.max(0, z)); // Ensure peaks don't go below 0
+        }
+
+        // Generate a gradient color based on height
+        let vertexColor;
+        if (z > peakHeight * 0.7) {
+            // Top part - magenta to purple gradient
+            const t = (z - peakHeight * 0.7) / (peakHeight * 0.3);
+            vertexColor = color1.clone().lerp(color2, 1 - t);
+        } else {
+            // Lower part - purple to dark purple gradient
+            const t = z / (peakHeight * 0.7);
+            vertexColor = color2.clone().lerp(color3, t);
+        }
+        
+        // Add colors to array
+        colors.push(vertexColor.r, vertexColor.g, vertexColor.b);
+    }
+    
+    // Add colors to geometry
+    mountainGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    
+    // Update the material to use vertex colors
+    mountainMaterial.vertexColors = true;
+    
+    // Compute normals for proper lighting
+    mountainGeometry.computeVertexNormals();
+
+    const mountains = new THREE.Mesh(mountainGeometry, mountainMaterial);
+    
+    // Position mountains further back
+    mountains.position.set(0, -15, -300);
+    mountains.rotation.x = -Math.PI / 2.2;
+    
+    // Create a wireframe overlay for the mountains using the same geometry
+    const wireframeMaterial = new MeshBasicMaterial({
+        color: 0xff00ff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.5
+    });
+    
+    const wireframeMountains = new THREE.Mesh(mountainGeometry.clone(), wireframeMaterial);
+    // Position wireframe slightly in front of solid mountains to avoid z-fighting
+    wireframeMountains.position.set(0, -14.9, -299);
+    wireframeMountains.rotation.x = -Math.PI / 2.2;
+    
+    // Create a purplish fog effect behind the mountains for depth
+    const mountainFog = new THREE.Fog(0x110022, 150, 600);
+    scene.fog = mountainFog;
+    
+    scene.add(mountains);
+    scene.add(wireframeMountains);
+    
+    // Add a second, darker mountain range in the far distance
+    const farMountainGeometry = new THREE.PlaneGeometry(1600, 150, 80, 20);
+    const farMountainMaterial = new MeshStandardMaterial({
+        color: 0x550066,           // Dark purple
+        emissive: 0x220033,        // Slight glow
+        emissiveIntensity: 0.3,
+        wireframe: false,
+        flatShading: true
+    });
+    
+    // Displace vertices for the far mountains
+    const farPositionAttribute = farMountainGeometry.getAttribute('position');
+    const farPeakHeight = 35;      // Increased height
+    const farFrequency = 0.015;
+    
+    // Far mountain colors
+    const farColors = [];
+    const farColor1 = new THREE.Color(0x660066);  // Dark purple (top)
+    const farColor2 = new THREE.Color(0x330044);  // Darker purple (bottom)
+    
+    for (let i = 0; i < farPositionAttribute.count; i++) {
+        const x = farPositionAttribute.getX(i);
+        const y = farPositionAttribute.getY(i);
+        
+        // Simple displacement for distant mountains
+        let z = Math.sin(x * farFrequency) * farPeakHeight;
+        z += Math.sin(x * farFrequency * 0.6) * farPeakHeight * 0.6;
+        z += Math.random() * 4; // Add some randomness
+        
+        // Only raise vertices in the upper part
+        if (y > -60) {
+            farPositionAttribute.setZ(i, Math.max(0, z));
+        }
+        
+        // Add gradient color
+        const t = z / farPeakHeight;
+        const color = farColor1.clone().lerp(farColor2, 1 - t);
+        farColors.push(color.r, color.g, color.b);
+    }
+    
+    // Add colors to geometry
+    farMountainGeometry.setAttribute('color', new THREE.Float32BufferAttribute(farColors, 3));
+    farMountainMaterial.vertexColors = true;
+    
+    farMountainGeometry.computeVertexNormals();
+    
+    const farMountains = new THREE.Mesh(farMountainGeometry, farMountainMaterial);
+    farMountains.position.set(0, -35, -550);
+    farMountains.rotation.x = -Math.PI / 2.5;
+    scene.add(farMountains);
+    
+    // Add wireframe to far mountains too
+    const farWireframeMaterial = new MeshBasicMaterial({
+        color: 0x800080,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.4
+    });
+    
+    const farWireframeMountains = new THREE.Mesh(farMountainGeometry.clone(), farWireframeMaterial);
+    farWireframeMountains.position.set(0, -34.9, -549);
+    farWireframeMountains.rotation.x = -Math.PI / 2.5;
+    scene.add(farWireframeMountains);
+    
+    // Add a horizon glow effect - bright line at the horizon
+    const horizonGeometry = new THREE.PlaneGeometry(2000, 15);
+    const horizonMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.7
+    });
+    
+    const horizon = new THREE.Mesh(horizonGeometry, horizonMaterial);
+    horizon.position.set(0, -40, -500);
+    horizon.rotation.x = -Math.PI / 2;
+    scene.add(horizon);
+}
+
+function createTargetingSystem() {
+    // Create a targeting reticle
+    const reticleGeometry = new RingGeometry(1.8, 2, 32);
+    const reticleMaterial = new LineBasicMaterial({ 
+        color: 0xff00ff,
+        transparent: true,
+        opacity: 0.6
+    });
+    const reticle = new Mesh(reticleGeometry, reticleMaterial);
+    reticle.rotation.x = Math.PI / 2;
+    reticle.position.z = -10;
+    player.add(reticle);
+    
+    // Targeting lines
+    const lineGeometry = new BufferGeometry().setFromPoints([
+        new Vector3(0, 0, 0),
+        new Vector3(0, 0, -10)
+    ]);
+    const lineMaterial = new LineDashedMaterial({
+        color: 0x00ffff,
+        dashSize: 0.5,
+        gapSize: 0.3,
+        transparent: true,
+        opacity: 0.6
+    });
+    const line = new Line(lineGeometry, lineMaterial);
+    line.computeLineDistances();
+    player.add(line);
+}
+
+function setupSounds() {
+    // --- NEW SOUND DEFINITIONS (Replace placeholders with actual paths) ---
+    
+    // Music
+    sounds.music = new Howl({
+        src: ['./Future Synthwave MIDI Kits - MIDI Klowd - 01 Future Synthwave MIDI Kits - Demo.mp3'],
+        loop: true,
+        volume: 0.6,
+        autoplay: false,
+        html5: true
+    });
+    
+    // Player Weapons
+    sounds.laser_primary = new Howl({
+        src: ['./mixkit-cinematic-laser-gun-thunder-1287.wav'],
+        volume: 0.8,
+        html5: true
+    });
+    
+    sounds.laser_twin = new Howl({
+        src: ['./mixkit-laser-weapon-shot-1681.wav'],
+        volume: 0.8,
+        html5: true
+    });
+    
+    sounds.laser_plasma = new Howl({
+        src: ['./mixkit-sci-fi-laser-shots-2783.wav'],
+        volume: 1.0,
+        html5: true
+    });
+    
+    sounds.laser_rail = new Howl({
+        src: ['./569900__bigdino1995__explosion.wav'],
+        volume: 0.9,
+        html5: true
+    });
+    
+    sounds.missile = new Howl({
+        src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
+        volume: 0.8,
+        html5: true
+    });
+    
+    sounds.db_windup = new Howl({
+        src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
+        volume: 1.0,
+        html5: true
+    });
+    
+    sounds.deathBlossom = new Howl({
+        src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
+        volume: 1.0,
+        html5: true
+    });
+    
+    // Enemy Weapons (Need game logic to trigger these)
+    sounds.plasma_sputter = new Howl({
+        src: ['./mixkit-retro-video-game-bubble-laser-277.wav'],
+        volume: 1.0,
+        html5: true
+    });
+    sounds.directional_threat = new Howl({
+        src: ['./mixkit-sci-fi-battle-laser-shots-2783.wav'],
+        volume: 1.0,
+        html5: true
+    });
+
+    // Explosions
+    sounds.explosion_small = new Howl({
+        src: ['./569900__bigdino1995__explosion.wav'],
+        volume: 1.0,
+        html5: true
+    });
+    sounds.explosion_forge_split = new Howl({ // For Forge-Splitter enemy type later
+        src: ['./mixkit-shatter-shot-explosion-1693.wav'],
+        volume: 1.0,
+        html5: true
+    });
+    sounds.explosion_shield_node = new Howl({ // For Boss shield nodes later
+        src: ['./mixkit-dramatic-metal-explosion-impact-1687.wav'],
+        volume: 1.0,
+        html5: true
+    });
+    sounds.explosion_boss_core = new Howl({ // For Boss death later
+        src: ['./661799__robinhood76__11182-futuristing-collapse-explosion.wav'],
+        volume: 1.0,
+        html5: true
+    });
+
+    // UI & HUD
+    sounds.ui_lock_on = new Howl({
+        src: ['./mixkit-unlock-game-notification-253.wav'],
+        volume: 1.0,
+        html5: true
+    });
+    sounds.ui_beep = new Howl({
+        src: ['./mixkit-censorship-beep-1082.wav'],
+        volume: 1.0,
+        html5: true
+    });
+
+    // --- End NEW SOUND DEFINITIONS ---
+    Object.keys(sounds).forEach(key => {
+        sounds[key].on('loaderror', function(id, error) {
+            console.error(key + ' load error: ', error);
+        });
+        sounds[key].on('playerror', function(id, error) {
+            console.error(key + ' play error: ', error);
+        });
+    })
+}
+
+function initRadar() {
+    const radar = document.getElementById('radar');
+    // Already styled in CSS
+    document.getElementById('audioIndicator').style.backgroundColor = "rgba(0,255,255,0.3)";
+    
+    // Play a test sound to confirm audio is working
+    sounds.ui_lock_on.play(); // Use new UI sound for test
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    // Resize HUD canvas
+    const hudCanvas = document.getElementById('hud');
+    hudCanvas.width = window.innerWidth;
+    hudCanvas.height = window.innerHeight;
+}
+
+function onKeyDown(event) {
+    keysPressed[event.key.toLowerCase()] = true;
+    
+    // Use event.code to detect spacebar reliably
+    if (event.code === 'Space' || event.key === ' ') {
+        event.preventDefault(); // Prevent scrolling
+        attemptFire();
+    }
+    if (event.key.toLowerCase() === 'd' && dbReady) {
+        triggerDeathBlossom();
+    }
+    if (event.code === 'Digit1') { currentWeapon = WEAPONS.PULSE; lastShot = 0; updateWeaponLabel(); }
+    if (event.code === 'Digit2') { currentWeapon = WEAPONS.TWIN;  lastShot = 0; updateWeaponLabel(); }
+    if (event.code === 'Digit3') { currentWeapon = WEAPONS.PLASMA; lastShot = 0; updateWeaponLabel(); }
+    if (event.code === 'Digit4') { currentWeapon = WEAPONS.RAIL;  lastShot = 0; updateWeaponLabel(); }
+    if (event.code === 'KeyF') { fireMissileSalvo(); }
+}
+
+function onKeyUp(event) {
+    keysPressed[event.key.toLowerCase()] = false;
+}
+
+function attemptFire() {
+    const now = performance.now() * 0.001;
+    if (now - lastShot < cooldown[currentWeapon]) return;
+    lastShot = now;
+    console.log('attemptFire triggered with weapon:', currentWeapon);
+    switch (currentWeapon) {
+        case WEAPONS.PULSE:  fireLaserBolt(); break;
+        case WEAPONS.TWIN:   fireTwinBlasters(); break;
+        case WEAPONS.PLASMA: firePlasmaBall(); break;
+        case WEAPONS.RAIL:   fireRailSpike(); break;
+    }
+}
+
+function fireLaserBolt() {
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
+    const bulletStart = player.position.clone().addScaledVector(dir, 2.5);
+    const bulletGeometry = new THREE.CylinderGeometry(0.3, 0.3, 3.0, 16);
+    const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
+    bulletMesh.rotation.x = Math.PI / 2;
+    bulletMesh.position.copy(bulletStart);
+    
+    const laserLight = new THREE.PointLight(0xff0000, 18, 30);
+    bulletMesh.add(laserLight);
+    
+    scene.add(bulletMesh);
+    bullets.push({
+        pos: bulletMesh.position,
+        vel: dir.clone().multiplyScalar(260),
+        type: 'laser',
+        dmg: 2,
+        mesh: bulletMesh
+    });
+    
+    // Play laser sound effect
+    if (isSoundOn && sounds.laser_primary) {
+        sounds.laser_primary.play();
+    }
+}
+
+function fireTwinBlasters() {
+    console.log('Twin Blasters fired');
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(player.quaternion).normalize();
+    [-1, 1].forEach(s => {
+        const bulletStart = player.position.clone().addScaledVector(right, s * 1.2).addScaledVector(dir, 2);
+        // Much larger projectile
+        const bulletGeometry = new THREE.CylinderGeometry(0.15, 0.15, 1.5, 8); 
+        // Bright amber color
+        const bulletMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xffaa00,
+            transparent: true,
+            opacity: 0.9
+        });
+        const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
+        bulletMesh.rotation.x = Math.PI / 2;
+        bulletMesh.position.copy(bulletStart);
+        
+        // Add point light for glow effect
+        const blasterLight = new THREE.PointLight(0xffaa00, 5, 10);
+        bulletMesh.add(blasterLight);
+        
+        scene.add(bulletMesh);
+        bullets.push({
+            pos: bulletMesh.position,
+            vel: dir.clone().addScaledVector(right, s * 0.05).normalize().multiplyScalar(260),
+            type: 'blaster',
+            dmg: 2,
+            mesh: bulletMesh
+        });
+    });
+    
+    // Play the twin blaster sound
+    if (isSoundOn && sounds.laser_twin) {
+        sounds.laser_twin.play();
+    }
+}
+
+function firePlasmaBall() {
+    console.log('Plasma Ball fired');
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
+    const bulletStart = player.position.clone().addScaledVector(dir, 2.8);
+    const bulletGeometry = new THREE.SphereGeometry(0.4, 12, 12);
+    const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+    const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
+    bulletMesh.position.copy(bulletStart);
+    scene.add(bulletMesh);
+    bullets.push({
+        pos: bulletMesh.position,
+        vel: dir.clone().multiplyScalar(130),
+        type: 'plasma',
+        dmg: 8,
+        splash: 3,
+        mesh: bulletMesh
+    });
+    
+    // Play the plasma sound
+    if (isSoundOn && sounds.laser_plasma) {
+        sounds.laser_plasma.play();
+    }
+}
+
+function fireRailSpike() {
+    console.log('Rail Spike fired');
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion).normalize();
+    const ray = new THREE.Raycaster(player.position, dir);
+    const enemyMeshes = enemies.map(e => e.mesh || e);
+    const hits = ray.intersectObjects(enemyMeshes);
+    hits.forEach(hit => {
+        damageEnemy(hit.object.parent || hit.object, 16);
+    });
+    drawRailBeam(dir);
+    
+    // Play the rail spike sound
+    if (isSoundOn && sounds.laser_rail) {
+        sounds.laser_rail.play();
+    }
+}
+
+function fireMissileSalvo() {
+    if (!missileReady) return;
+    missileReady = false;
+    setTimeout(() => missileReady = true, 30000);
+    const targets = enemies.slice(0, 3);
+    targets.forEach(t => {
+        const bulletStart = player.position.clone();
+        const bulletGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+        const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
+        bulletMesh.position.copy(bulletStart);
+        scene.add(bulletMesh);
+        bullets.push({
+            pos: bulletMesh.position,
+            vel: new THREE.Vector3(),
+            target: t,
+            type: 'missile',
+            dmg: 3,
+            mesh: bulletMesh
+        });
+    });
+    
+    // Play missile sound
+    if (isSoundOn && sounds.missile) {
+        sounds.missile.play();
+    }
+}
+
+function drawRailBeam(dir) {
+    // Create a bright, thick beam
+    const material = new THREE.LineBasicMaterial({ 
+        color: 0x00ffff, // Cyan color for visibility
+        linewidth: 10 // Note: linewidth may not work in WebGL, but we're adding other effects
+    });
+    
+    const points = [];
+    points.push(player.position.clone());
+    points.push(player.position.clone().add(dir.clone().multiplyScalar(200))); // Longer beam
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(geometry, material);
+    
+    // Add glow effect with a cylinder
+    const glowGeometry = new THREE.CylinderGeometry(0.2, 0.2, 200, 16);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.3
+    });
+    const glowCylinder = new THREE.Mesh(glowGeometry, glowMaterial);
+    glowCylinder.position.copy(player.position.clone().add(dir.clone().multiplyScalar(100)));
+    glowCylinder.lookAt(player.position.clone().add(dir.clone().multiplyScalar(200)));
+    glowCylinder.rotation.x = Math.PI / 2;
+    
+    scene.add(line);
+    scene.add(glowCylinder);
+    
+    // Flash effect at player position
+    const flashGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+    const flashMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.8
+    });
+    const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+    flash.position.copy(player.position);
+    scene.add(flash);
+    
+    // Remove effects after a duration (increased from 50ms to 150ms)
+    setTimeout(() => { 
+        scene.remove(line); 
+        scene.remove(glowCylinder);
+        scene.remove(flash);
+    }, 150);
+}
+
+function updateWeaponLabel() {
+    const labels = ['Pulse Laser', 'Twin Blasters', 'Plasma Burst', 'Rail Spike'];
+    document.getElementById('weaponLbl').textContent = labels[currentWeapon];
+}
+
+function damageEnemy(enemy, dmg) {
+    enemy.userData.hp -= dmg;
+    if (enemy.userData.hp <= 0) {
+        score += enemy.userData.scoreValue || 100;
+        createExplosion(enemy.position, enemy);
+        scene.remove(enemy);
+        enemies.splice(enemies.indexOf(enemy), 1);
+        updateHUD();
+    }
+}
+
+function tronWireClone(mesh) {
+  // If mesh has no geometry, create a basic one
+  if (!mesh.geometry) {
+    console.warn("Mesh has no geometry, creating fallback");
+    const g = new THREE.BoxGeometry(1, 1, 1);
+    const mat = new THREE.LineBasicMaterial({
+      color: 0x00eaff, linewidth: 1, transparent: true
+    });
+    const wire = new THREE.LineSegments(g, mat);
+    wire.position.copy(mesh.position);
+    scene.add(wire);
+    
+    // Animate shrink & fade
+    let t = 0;
+    const dur = 0.4;
+    function update(dt) {
+      t += dt;
+      const k = 1 - t/dur;
+      wire.scale.setScalar(k);
+      wire.material.opacity = k;
+      if (t >= dur) {
+        scene.remove(wire);
+        ticker.delete(update);
+      }
+    }
+    ticker.add(update);
+    return;
+  }
+  
+  // Use the mesh's geometry for the wireframe
+  try {
+    const g = new THREE.WireframeGeometry(mesh.geometry);
+    const mat = new THREE.LineBasicMaterial({
+      color: 0x00eaff, linewidth: 1, transparent: true
+    });
+    const wire = new THREE.LineSegments(g, mat);
+    wire.position.copy(mesh.position);
+    wire.quaternion.copy(mesh.quaternion);
+    scene.add(wire);
+    
+    // Animate shrink & fade
+    let t = 0;
+    const dur = 0.4;
+    function update(dt) {
+      t += dt;
+      const k = 1 - t/dur;
+      wire.scale.setScalar(k);
+      wire.material.opacity = k;
+      if (t >= dur) {
+        scene.remove(wire);
+        ticker.delete(update);
+      }
+    }
+    ticker.add(update);
+  } catch (e) {
+    console.error("Error creating wireframe", e);
+  }
+}
+
+function tronSparks(pos) {
+  const g = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+  const mat = new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true});
+  for (let i = 0; i < 80; i++) {
+    const cube = new THREE.Mesh(g, mat.clone());
+    cube.position.copy(pos);
+    const dir = new THREE.Vector3(
+      Math.random() - 0.5,
+      Math.random() - 0.5,
+      Math.random() - 0.5
+    ).normalize();
+    cube.userData.vel = dir.multiplyScalar(20 + Math.random() * 15);
+    scene.add(cube);
+    
+    function update(dt) {
+      cube.position.addScaledVector(cube.userData.vel, dt);
+      cube.material.opacity -= dt * 2.5;
+      if (cube.material.opacity <= 0) {
+        scene.remove(cube);
+        ticker.delete(update);
+      }
+    }
+    ticker.add(update);
+  }
+}
+
+function tronFlash() {
+  flash.style.opacity = 1;
+  setTimeout(() => flash.style.opacity = 0, 60);
+}
+
+// Combined function for the full explosion effect
+function createExplosion(position, mesh) {
+    // Play appropriate explosion sound
+    if (isSoundOn) {
+        if (mesh && mesh.userData.type === 'commandCarrier') {
+            sounds.explosion_boss_core.play();
+        } else if (mesh && mesh.userData.type === 'forgeHauler') {
+            sounds.explosion_forge_split.play();
+        } else {
+            sounds.explosion_small.play();
+        }
+    }
+    
+    // Create expanding ring effect
+    const ringGeometry = new THREE.RingGeometry(0, 1, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff00ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.position.copy(position);
+    scene.add(ring);
+    
+    // Animate ring
+    let time = 0;
+    const duration = 0.5;
+    function updateRing(dt) {
+        time += dt;
+        const scale = time / duration * 5;
+        ring.scale.setScalar(scale);
+        ring.material.opacity = 1 - (time / duration);
+        if (time >= duration) {
+            scene.remove(ring);
+            ticker.delete(updateRing);
+        }
+    }
+    ticker.add(updateRing);
+    
+    // Create particle effect
+    const particleCount = 50;
+    const particles = new THREE.Group();
+    for (let i = 0; i < particleCount; i++) {
+        const particle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.1, 4, 4),
+            new THREE.MeshBasicMaterial({
+                color: 0xff00ff,
+                transparent: true
+            })
+        );
+        const velocity = new THREE.Vector3(
+            Math.random() - 0.5,
+            Math.random() - 0.5,
+            Math.random() - 0.5
+        ).normalize().multiplyScalar(Math.random() * 10);
+        particle.userData.velocity = velocity;
+        particle.position.copy(position);
+        particles.add(particle);
+    }
+    scene.add(particles);
+    
+    // Animate particles
+    time = 0;
+    function updateParticles(dt) {
+        time += dt;
+        particles.children.forEach(particle => {
+            particle.position.add(particle.userData.velocity.clone().multiplyScalar(dt));
+            particle.material.opacity = 1 - (time / duration);
+        });
+        if (time >= duration) {
+            scene.remove(particles);
+            ticker.delete(updateParticles);
+        }
+    }
+    ticker.add(updateParticles);
+    
+    // Wireframe effect from existing code
+    if (mesh) {
+        tronWireClone(mesh);
+    }
+    
+    // Flash effect
+    tronFlash();
+}
+
+// Replace the animate function with gameLoop
+function gameLoop() {
+    // Only process the animation if the game is active
+    if (!gameActive) return;
+    
+    requestAnimationFrame(gameLoop);
+    const delta = clock.getDelta();
+    const elapsedTime = clock.getElapsedTime() * 1000; // ms
+    
+    // Run ticker animations
+    ticker.forEach(fn => fn(delta));
+    
+    // Check if player is dead
+    if (playerShield <= 0) {
+        gameOver();
+        return;
+    }
+    
+    // Player Movement
+    const moveSpeed = playerSpeed * 60 * delta;
+    if (keysPressed['arrowleft'] || keysPressed['a']) {
+        player.position.x -= moveSpeed;
+        playerShip.rotation.z = MathUtils.lerp(playerShip.rotation.z, 0.2, 0.1);
+    } else if (keysPressed['arrowright'] || keysPressed['d']) {
+        player.position.x += moveSpeed;
+        playerShip.rotation.z = MathUtils.lerp(playerShip.rotation.z, -0.2, 0.1);
+    } else {
+        playerShip.rotation.z = MathUtils.lerp(playerShip.rotation.z, 0, 0.1);
+    }
+    
+    if (keysPressed['arrowup'] || keysPressed['w']) {
+        player.position.y += moveSpeed;
+        playerShip.rotation.x = MathUtils.lerp(playerShip.rotation.x, -0.1, 0.1);
+    } else if (keysPressed['arrowdown'] || keysPressed['s']) {
+        player.position.y -= moveSpeed;
+        playerShip.rotation.x = MathUtils.lerp(playerShip.rotation.x, 0.1, 0.1);
+    } else {
+        playerShip.rotation.x = MathUtils.lerp(playerShip.rotation.x, 0, 0.1);
+    }
+    
+    // Clamp player position - enforce ground level
+    player.position.x = Math.max(-20, Math.min(20, player.position.x));
+    player.position.y = Math.max(-5, Math.min(10, player.position.y)); // Lower minimum Y to -5
+    
+    // Roll control using Q/E keys
+    const ROLL_RATE = 1.0; // radians per second, adjust as needed
+    if (keysPressed['q']) {
+        playerShip.rotation.z += ROLL_RATE * delta;
+    }
+    if (keysPressed['e']) {
+        playerShip.rotation.z -= ROLL_RATE * delta;
+    }
+    
+    // Bullet movement & collision
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.pos.addScaledVector(b.vel, delta);
+        if (b.mesh) {
+            b.mesh.position.copy(b.pos);
+        }
+        if (b.type === 'missile' && b.target) {
+            const dir = b.target.position.clone().sub(b.pos).normalize();
+            b.vel.lerp(dir.multiplyScalar(180), 0.05);
+        }
+        let hit = false;
+        for (let j = enemies.length - 1; j >= 0; j--) {
+            const enemy = enemies[j];
+            if (b.pos.distanceTo(enemy.position) < 1.0) {
+                if (b.type === 'plasma') {
+                    enemies.forEach(e => {
+                        if (e.position.distanceTo(b.pos) < (b.splash || 2)) {
+                            damageEnemy(e, b.dmg);
+                        }
+                    });
+                } else {
+                    damageEnemy(enemy, b.dmg);
+                }
+                if (b.mesh) { scene.remove(b.mesh); }
+                bullets.splice(i, 1);
+                hit = true;
+                break;
+            }
+        }
+        if (hit) continue;
+        if (b.pos.z < -100) {
+            if (b.mesh) { scene.remove(b.mesh); }
+            bullets.splice(i, 1);
+        }
+    }
+    
+    // Enemy spawning & movement
+    if (elapsedTime - lastSpawnTime > spawnInterval) {
+        spawnEnemy();
+        lastSpawnTime = elapsedTime;
+    }
+    
+    // Update closest enemy target marker
+    let closestEnemy = null;
+    let closestDistance = Infinity;
+    
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
+        enemy.position.z += enemySpeed * 60 * delta;
+        
+        // Simple rotation animation
+        enemy.rotation.x += 0.01;
+        enemy.rotation.y += 0.01;
+        
+        // Check if this is the closest enemy
+        const distance = enemy.position.distanceTo(player.position);
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestEnemy = enemy;
+        }
+        
+        // Check for collision with player
+        if (distance < 1.5) {
+            playerShield -= 10;
+            createExplosion(enemy.position, enemy);
+            scene.remove(enemy);
+            enemies.splice(i, 1);
+            updateHUD();
+            continue;
+        }
+        
+        // Remove enemies that pass the player
+        if (enemy.position.z > camera.position.z + 5) {
+            scene.remove(enemy);
+            enemies.splice(i, 1);
+        }
+    }
+    
+    // Update the target marker for the closest enemy
+    updateTargetMarker(closestEnemy);
+    
+    // Update HUD
+    updateHUD();
+    
+    // Update camera follow for full 6‑DoF effect
+    const camOffset = new THREE.Vector3(0, 2, 12).applyQuaternion(playerShip.quaternion);
+    camera.position.copy(player.position).add(camOffset);
+    camera.up.copy(new THREE.Vector3(0, 1, 0).applyQuaternion(playerShip.quaternion));
+    camera.lookAt(player.position);
+    
+    // Shield regeneration logic
+    const now = performance.now();
+    if (now - lastDamageTime > SHIELD_REGEN_DELAY && playerShield < 100) {
+        playerShield = Math.min(100, playerShield + SHIELD_REGEN_RATE * delta);
+        updateShieldBar();
+    }
+    
+    // Update enemy formations
+    updateEnemyFormations(delta);
+    
+    // Spawn formations occasionally
+    if (Math.random() < 0.001) {
+        spawnEnemyFormation();
+    }
+    
+    renderer.render(scene, camera);
+}
+
+function spawnEnemy() {
+    const enemyType = selectEnemyType();
+    let enemy;
+    if (enemyType === 'miniGunstar') {
+        enemy = createMiniGunstar();
+        enemy.userData = { type: 'miniGunstar', hp: 1, scoreValue: 100 };
+    } else if (enemyType === 'forgeHauler') {
+        enemy = createForgeHauler();
+        enemy.userData = { type: 'forgeHauler', hp: 3, scoreValue: 300 };
+    } else if (enemyType === 'droneSwarm') {
+        enemy = createDroneSwarm();
+        enemy.userData = { type: 'droneSwarm', hp: 1, scoreValue: 150 };
+    } else if (enemyType === 'commandCarrier') {
+        enemy = createCommandCarrier();
+        enemy.userData = { type: 'commandCarrier', hp: 10, scoreValue: 1000 };
+    }
+    // Random position ahead of player
+    enemy.position.set(
+        MathUtils.randFloatSpread(30),
+        MathUtils.randFloatSpread(15),
+        -80 - Math.random() * 40
+    );
+    enemies.push(enemy);
+    scene.add(enemy);
+    updateTargetMarker(enemy);
+}
+
+function selectEnemyType() {
+    if (level < 3) {
+        return 'miniGunstar';
+    } else if (level < 5) {
+        const types = ['miniGunstar', 'droneSwarm', 'forgeHauler'];
+        return types[Math.floor(Math.random() * types.length)];
+    } else {
+        const types = ['miniGunstar', 'droneSwarm', 'forgeHauler', 'commandCarrier'];
+        return types[Math.floor(Math.random() * types.length)];
+    }
+}
+
+function createMiniGunstar() {
+    // Ko-Dan Fighter (Mini Gunstar): low-poly cone as placeholder
+    const geometry = new ConeGeometry(0.7, 2, 8);
+    const material = new MeshStandardMaterial({ color: 0xaaaaaa, wireframe: true });
+    return new Mesh(geometry, material);
+}
+
+function createForgeHauler() {
+    // Forge Hauler: Industrial orange torus with cargo pods
+    const group = new Group();
+    const torus = new Mesh(new TorusGeometry(1, 0.3, 8, 16), new MeshStandardMaterial({ color: 0xff6600, wireframe: true }));
+    group.add(torus);
+    // Add 4 small cargo pods as cubes around the torus
+    const podGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const podMaterial = new MeshStandardMaterial({ color: 0xffaa00, wireframe: true });
+    const offsets = [ [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0] ];
+    offsets.forEach(offset => {
+        const pod = new Mesh(podGeometry, podMaterial);
+        pod.position.set(offset[0] * 1.2, offset[1] * 1.2, 0);
+        group.add(pod);
+    });
+    return group;
+}
+
+function createDroneSwarm() {
+    // Drone Swarm: Group of 8 tiny Gunstar drones
+    const group = new Group();
+    for (let i = 0; i < 8; i++) {
+        const drone = new Mesh(new ConeGeometry(0.3, 1, 8), new MeshStandardMaterial({ color: 0x00ff00, wireframe: true }));
+        const angle = (i / 8) * Math.PI * 2;
+        drone.position.set(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, 0);
+        group.add(drone);
+    }
+    return group;
+}
+
+function createCommandCarrier() {
+    // Command Carrier (Boss): Cyan torus hull with shield nodes and a turret
+    const group = new Group();
+    const hull = new Mesh(new TorusGeometry(1.5, 0.4, 16, 32), new MeshStandardMaterial({ color: 0x00ffff, wireframe: true }));
+    group.add(hull);
+    for (let i = 0; i < 4; i++) {
+        const shield = new Mesh(new TorusGeometry(0.4, 0.1, 8, 16), new MeshStandardMaterial({ color: 0x00ffff, emissive: 0x003333, wireframe: true }));
+        const angle = (i / 4) * Math.PI * 2;
+        shield.position.set(Math.cos(angle) * 2, Math.sin(angle) * 2, 0);
+        group.add(shield);
+    }
+    // Add a turret (Mini Gunstar) on the top
+    const turret = createMiniGunstar();
+    turret.position.set(0, 0, 1);
+    turret.userData.isTurret = true;
+    group.add(turret);
+    return group;
+}
+
+function capsuleDistance2(A, B, radius, P) {
+    // Capsule collision helper as per revised roster
+    const AB = B.clone().sub(A);
+    const t = MathUtils.clamp(P.clone().sub(A).dot(AB) / AB.lengthSq(), 0, 1);
+    const closest = A.clone().addScaledVector(AB, t);
+    return closest.distanceToSquared(P) - radius * radius;
+}
+
+function updateHUD() {
+    document.getElementById('levelLbl').innerText = `LEVEL ${level}`;
+    document.getElementById('scoreLbl').innerText = `SCORE: ${score}`;
+}
+
+function updateTargetMarker(enemy) {
+    const marker = document.getElementById('targetMarker');
+    if (enemy) {
+        // Project enemy world position to screen coordinates
+        const screenPos = enemy.position.clone().project(camera);
+        
+        // Convert normalized device coordinates (-1 to +1) to screen pixels
+        const screenX = (screenPos.x + 1) / 2 * window.innerWidth;
+        const screenY = (-screenPos.y + 1) / 2 * window.innerHeight;
+        
+        // Update marker position and make it visible
+        marker.style.left = `${screenX}px`;
+        marker.style.top = `${screenY}px`;
+        marker.style.opacity = '1';
+        
+        // Update target info (optional, can be expanded)
+        const distance = player.position.distanceTo(enemy.position).toFixed(1);
+        document.getElementById('targetInfo').textContent = `TARGET: ${enemy.userData.type || 'Enemy'} | DIST: ${distance}m`;
+        
+        // Play lock-on sound if not already played recently for this target
+        if (enemy.userData.lockOnSoundPlayed !== true && isSoundOn && sounds.ui_lock_on) {
+            sounds.ui_lock_on.play();
+            enemy.userData.lockOnSoundPlayed = true; // Prevent continuous sound
+            // Reset after a delay
+            setTimeout(() => {
+                if (enemy && enemy.userData) {
+                    enemy.userData.lockOnSoundPlayed = false;
+                }
+            }, 2000); // Allow lock-on sound again after 2 seconds
+        }
+        
+    } else {
+        // Hide marker and clear target info if no enemy is targeted
+        marker.style.opacity = '0';
+        document.getElementById('targetInfo').textContent = '';
+    }
+}
+
+function triggerDeathBlossom() {
+    if (!dbReady) return;
+    
+    dbReady = false;
+    document.getElementById('dbLbl').textContent = 'DEATH BLOSSOM CHARGING';
+    
+    // Play windup sound
+    if (isSoundOn && sounds.db_windup) {
+        sounds.db_windup.play();
+    }
+    
+    // Create the visual effect container
+    const dbEffect = new THREE.Group();
+    dbEffect.position.copy(player.position);
+    scene.add(dbEffect);
+    
+    // Create the ring effect
+    const ringGeometry = new THREE.RingGeometry(2, 2.2, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff00ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.rotation.x = Math.PI / 2; // Align with ship orientation
+    dbEffect.add(ring);
+    
+    // Add a point light for glow effect
+    const pointLight = new THREE.PointLight(0xff00ff, 5, 10);
+    dbEffect.add(pointLight);
+    
+    // Animate the ring
+    let time = 0;
+    const ringAnimation = (dt) => {
+        time += dt;
+        ring.scale.setScalar(1 + Math.sin(time * 10) * 0.2);
+        ring.rotation.z += dt * 2;
+        // Make dbEffect follow player
+        dbEffect.position.copy(player.position);
+    };
+    ticker.add(ringAnimation);
+    
+    // Flash effect
+    tronFlash();
+    
+    // Start the Death Blossom after a short delay
+    setTimeout(() => {
+        // Play the main Death Blossom sound
+        if (isSoundOn && sounds.deathBlossom) {
+            sounds.deathBlossom.play();
+        }
+        
+        // Create and fire projectiles in a spiral pattern
+        let angle = 0;
+        const projectilesPerBurst = 4; // Fire 4 projectiles at once
+        const totalBursts = DB_PROJECTILES / projectilesPerBurst;
+        
+        const intervalId = setInterval(() => {
+            for (let i = 0; i < projectilesPerBurst; i++) {
+                const a = angle + (i * Math.PI * 2 / projectilesPerBurst);
+                const dir = new THREE.Vector3(Math.cos(a), Math.sin(a), 0);
+                
+                // Create special Death Blossom projectile
+                const bulletGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+                const bulletMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff00ff,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
+                bulletMesh.position.copy(player.position);
+                
+                // Add glow effect
+                const glowLight = new THREE.PointLight(0xff00ff, 2, 5);
+                bulletMesh.add(glowLight);
+                
+                scene.add(bulletMesh);
+                bullets.push({
+                    pos: bulletMesh.position,
+                    vel: dir.multiplyScalar(200),
+                    type: 'deathBlossom',
+                    dmg: 5,
+                    mesh: bulletMesh
+                });
+            }
+            
+            // Also fire in Z direction (forward/backward)
+            const zAngles = [0, Math.PI]; // forward and backward
+            for (let zAngle of zAngles) {
+                const dir = new THREE.Vector3(Math.cos(angle) * 0.3, Math.sin(angle) * 0.3, Math.cos(zAngle));
+                
+                const bulletGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+                const bulletMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ffff, // Different color for Z-axis projectiles
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
+                bulletMesh.position.copy(player.position);
+                
+                // Add glow effect
+                const glowLight = new THREE.PointLight(0x00ffff, 2, 5);
+                bulletMesh.add(glowLight);
+                
+                scene.add(bulletMesh);
+                bullets.push({
+                    pos: bulletMesh.position,
+                    vel: dir.multiplyScalar(200),
+                    type: 'deathBlossom',
+                    dmg: 5,
+                    mesh: bulletMesh
+                });
+            }
+            
+            angle += 0.5; // Rotate the pattern faster for more visible effect
+            
+            // Flash effect for each burst
+            tronFlash();
+            
+        }, DB_DURATION / totalBursts); // Evenly space the bursts over the duration
+        
+        // Stop firing after duration
+        setTimeout(() => {
+            clearInterval(intervalId);
+            ticker.delete(ringAnimation);
+            scene.remove(dbEffect);
+            
+            // Start cooldown
+            setTimeout(() => {
+                dbReady = true;
+                document.getElementById('dbLbl').textContent = 'DEATH BLOSSOM READY';
+            }, DB_COOLDOWN - DB_DURATION);
+        }, DB_DURATION);
+    }, 500); // 500ms windup time
+}
+
+function gameOver() {
+    console.log('Game Over');
+    // Implement the logic for handling game over
+}
+
+function gameActive() {
+    return true; // Implement the logic to check if the game is active
+}
+
+// Add function to update shield bar visuals
+function updateShieldBar() {
+    const fill = document.querySelector('.shield-bar .fill');
+    fill.style.width = `${playerShield}%`;
+    
+    // Add color transitions based on shield level
+    if (playerShield > 60) {
+        fill.style.backgroundColor = '#0ff';
+    } else if (playerShield > 30) {
+        fill.style.backgroundColor = '#ff0';
+    } else {
+        fill.style.backgroundColor = '#f00';
+    }
+}
+
+// Update the damage handling to reset shield regeneration timer
+function damagePlayer(amount) {
+    playerShield -= amount;
+    lastDamageTime = performance.now();
+    updateShieldBar();
+    
+    // Visual feedback for shield hit
+    const shieldFlash = document.createElement('div');
+    Object.assign(shieldFlash.style, {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(255,0,255,0.2)',
+        pointerEvents: 'none',
+        transition: 'opacity 0.3s',
+        zIndex: 70
+    });
+    document.body.appendChild(shieldFlash);
+    
+    // Fade out and remove the flash effect
+    setTimeout(() => {
+        shieldFlash.style.opacity = 0;
+        setTimeout(() => shieldFlash.remove(), 300);
+    }, 50);
+}
+
+function spawnEnemyFormation() {
+    const formationType = Math.floor(Math.random() * 3);
+    let positions = [];
+    
+    switch (formationType) {
+        case FORMATION_TYPES.V:
+            positions = [
+                [0, 0, 0],
+                [-2, -2, 1],
+                [2, -2, 1],
+                [-4, -4, 2],
+                [4, -4, 2]
+            ];
+            break;
+        case FORMATION_TYPES.WALL:
+            positions = [
+                [-4, 0, 0],
+                [-2, 0, 0],
+                [0, 0, 0],
+                [2, 0, 0],
+                [4, 0, 0]
+            ];
+            break;
+        case FORMATION_TYPES.DIAMOND:
+            positions = [
+                [0, 2, 0],
+                [-2, 0, 0],
+                [2, 0, 0],
+                [0, -2, 0],
+                [0, 0, 0]
+            ];
+            break;
+    }
+    
+    const formation = new THREE.Group();
+    positions.forEach(pos => {
+        const enemy = createEnemy(selectEnemyType());
+        enemy.position.set(pos[0], pos[1], pos[2]);
+        formation.add(enemy);
+    });
+    
+    formation.position.set(
+        MathUtils.randFloatSpread(20),
+        MathUtils.randFloatSpread(10),
+        -100
+    );
+    
+    scene.add(formation);
+    enemyFormations.push({
+        group: formation,
+        behavior: Math.floor(Math.random() * 4),
+        time: 0
+    });
+}
+
+function updateEnemyFormations(delta) {
+    enemyFormations.forEach((formation, index) => {
+        formation.time += delta;
+        
+        switch (formation.behavior) {
+            case ENEMY_BEHAVIORS.STRAIGHT:
+                formation.group.position.z += enemySpeed * 60 * delta;
+                break;
+            case ENEMY_BEHAVIORS.SINE_WAVE:
+                formation.group.position.z += enemySpeed * 60 * delta;
+                formation.group.position.x = Math.sin(formation.time) * 10;
+                break;
+            case ENEMY_BEHAVIORS.CIRCLE_STRAFE:
+                const radius = 15;
+                const speed = 0.5;
+                formation.group.position.x = Math.cos(formation.time * speed) * radius;
+                formation.group.position.z = -50 + Math.sin(formation.time * speed) * radius;
+                break;
+            case ENEMY_BEHAVIORS.PURSUIT:
+                const toPlayer = player.position.clone().sub(formation.group.position);
+                toPlayer.normalize().multiplyScalar(enemySpeed * 40 * delta);
+                formation.group.position.add(toPlayer);
+                break;
+        }
+        
+        // Remove formation if past player
+        if (formation.group.position.z > camera.position.z + 10) {
+            scene.remove(formation.group);
+            enemyFormations.splice(index, 1);
+        }
+    });
+}
+
+function createEnemy(enemyType) {
+    let enemy;
+    if (enemyType === 'miniGunstar') {
+        enemy = createMiniGunstar();
+        enemy.userData = { type: 'miniGunstar', hp: 1, scoreValue: 100 };
+    } else if (enemyType === 'forgeHauler') {
+        enemy = createForgeHauler();
+        enemy.userData = { type: 'forgeHauler', hp: 3, scoreValue: 300 };
+    } else if (enemyType === 'droneSwarm') {
+        enemy = createDroneSwarm();
+        enemy.userData = { type: 'droneSwarm', hp: 1, scoreValue: 150 };
+    } else if (enemyType === 'commandCarrier') {
+        enemy = createCommandCarrier();
+        enemy.userData = { type: 'commandCarrier', hp: 10, scoreValue: 1000 };
+    }
+    return enemy;
+}
+
+init();
+gameLoop();
+</script>
+</body>
+</html>
