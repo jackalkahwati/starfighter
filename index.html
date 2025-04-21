@@ -125,6 +125,7 @@ let currentWeapon = WEAPONS.PULSE;
 const cooldown = [0.16, 0.125, 0.5, 1.0]; // seconds between shots
 let lastShot = 0;
 let missileReady = true;
+let currentTargetedEnemy = null; // Add this variable to track the last target
 
 // Add the ticker utility for animations
 const ticker = new Set();
@@ -1345,20 +1346,14 @@ function updateTargetMarker(enemy) {
         marker.style.top = `${screenY}px`;
         marker.style.opacity = '1';
         
-        // Update target info (optional, can be expanded)
+        // Update target info
         const distance = player.position.distanceTo(enemy.position).toFixed(1);
         document.getElementById('targetInfo').textContent = `TARGET: ${enemy.userData.type || 'Enemy'} | DIST: ${distance}m`;
         
-        // Play lock-on sound if not already played recently for this target
-        if (enemy.userData.lockOnSoundPlayed !== true && isSoundOn && sounds.ui_lock_on) {
+        // Play lock-on sound ONLY if the target is NEW
+        if (enemy !== currentTargetedEnemy && isSoundOn && sounds.ui_lock_on) {
             sounds.ui_lock_on.play();
-            enemy.userData.lockOnSoundPlayed = true; // Prevent continuous sound
-            // Reset after a delay
-            setTimeout(() => {
-                if (enemy && enemy.userData) {
-                    enemy.userData.lockOnSoundPlayed = false;
-                }
-            }, 2000); // Allow lock-on sound again after 2 seconds
+            // No need for lockOnSoundPlayed flag anymore
         }
         
     } else {
@@ -1366,6 +1361,9 @@ function updateTargetMarker(enemy) {
         marker.style.opacity = '0';
         document.getElementById('targetInfo').textContent = '';
     }
+    
+    // Update the currently tracked target for the next frame
+    currentTargetedEnemy = enemy;
 }
 
 function triggerDeathBlossom() {
