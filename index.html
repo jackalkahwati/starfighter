@@ -254,13 +254,6 @@ function init() {
             // Initialize sounds on first click
             audioWarmedUp = true;
             isSoundOn = true;
-            Object.keys(sounds).forEach(key => {
-                // Load sound effects without playing them
-                if (key !== 'music') { 
-                    sounds[key].load();
-                }
-            });
-            // Explicitly play only the music
             sounds.music.play(); 
             this.textContent = '🔊 Sound ON';
             this.style.backgroundColor = "rgba(255,0,255,0.3)";
@@ -537,56 +530,49 @@ function createTargetingSystem() {
 function setupSounds() {
     // --- NEW SOUND DEFINITIONS (Replace placeholders with actual paths) ---
     
-    // Music
+    // Music (Preload this one)
     sounds.music = new Howl({
         src: ['./Future Synthwave MIDI Kits - MIDI Klowd - 01 Future Synthwave MIDI Kits - Demo.mp3'],
         loop: true,
         volume: 0.6,
         autoplay: false,
-        html5: true
+        preload: true
     });
     
-    // Player Weapons
+    // Player Weapons (Load on demand)
     sounds.laser_primary = new Howl({
         src: ['./mixkit-cinematic-laser-gun-thunder-1287.wav'],
-        volume: 0.8,
-        html5: true
+        volume: 0.8
     });
     
     sounds.laser_twin = new Howl({
         src: ['./mixkit-laser-weapon-shot-1681.wav'],
-        volume: 0.8,
-        html5: true
+        volume: 0.8
     });
     
     sounds.laser_plasma = new Howl({
         src: ['./mixkit-sci-fi-laser-shots-2783.wav'],
-        volume: 1.0,
-        html5: true
+        volume: 1.0
     });
     
     sounds.laser_rail = new Howl({
         src: ['./569900__bigdino1995__explosion.wav'],
-        volume: 0.9,
-        html5: true
+        volume: 0.9
     });
     
     sounds.missile = new Howl({
         src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
-        volume: 0.8,
-        html5: true
+        volume: 0.8
     });
     
     sounds.db_windup = new Howl({
         src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
-        volume: 1.0,
-        html5: true
+        volume: 1.0
     });
     
     sounds.deathBlossom = new Howl({
         src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
-        volume: 1.0,
-        html5: true
+        volume: 1.0
     });
     
     // Enemy Weapons (Need game logic to trigger these)
