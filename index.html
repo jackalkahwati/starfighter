@@ -255,11 +255,13 @@ function init() {
             audioWarmedUp = true;
             isSoundOn = true;
             Object.keys(sounds).forEach(key => {
-                // Play and immediately pause to load audio
-                sounds[key].play();
-                sounds[key].pause();
+                // Load sound effects without playing them
+                if (key !== 'music') { 
+                    sounds[key].load();
+                }
             });
-            sounds.music.play();
+            // Explicitly play only the music
+            sounds.music.play(); 
             this.textContent = '🔊 Sound ON';
             this.style.backgroundColor = "rgba(255,0,255,0.3)";
         } else {
@@ -270,7 +272,10 @@ function init() {
                 this.textContent = '🔊 Sound ON';
                 this.style.backgroundColor = "rgba(255,0,255,0.3)";
             } else {
-                sounds.music.pause();
+                // Pause all sounds if toggling off
+                Object.keys(sounds).forEach(key => {
+                    sounds[key].pause();
+                });
                 this.textContent = '🔇 Sound OFF';
                 this.style.backgroundColor = "rgba(0,0,0,0.3)";
             }
@@ -646,8 +651,8 @@ function initRadar() {
     // Already styled in CSS
     document.getElementById('audioIndicator').style.backgroundColor = "rgba(0,255,255,0.3)";
     
-    // Play a test sound to confirm audio is working
-    sounds.ui_lock_on.play(); // Use new UI sound for test
+    // Remove the unconditional test sound playback
+    // sounds.ui_lock_on.play(); // <-- REMOVE THIS LINE
 }
 
 function onWindowResize() {
