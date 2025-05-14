@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "mcp-unity": {
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/StarfighterUnity/Library/PackageCache/com.codergamester.mcp-unity@1.0.2/Server~/build/index.js"
+      ],
+      "env": {
+        "UNITY_PORT": "8090",
+        "UNITY_REQUEST_TIMEOUT": "300"
+      }
+    }
+  }
+} 
