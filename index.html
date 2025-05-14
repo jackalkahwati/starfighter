@@ -4,67 +4,161 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Starfighter: Frontier Rising — Synthwave Edition (v3.1)</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">   <!-- Retro font -->
   <style>
-    html,body{margin:0;padding:0;background:#000;overflow:hidden;font-family:monospace;color:#0ff}
-    #ui{position:fixed;top:16px;left:16px;right:16px;z-index:60;text-shadow:0 0 6px #0ff;pointer-events:none;display:flex;justify-content:space-between;font-size:14px}
-    #ui .left, #ui .right {display:flex;align-items:flex-start;flex-direction:column;}
-    #ui .center {text-align:center;}
-    #ui span{margin:4px 0;letter-spacing:1px}
-    .shield-bar {display:inline-block;width:120px;height:10px;background:rgba(0,255,255,0.2);position:relative;margin-left:8px;border:1px solid #0ff}
-    .shield-bar .fill {position:absolute;top:0;left:0;height:100%;background:#0ff;transition:width 0.3s}
-    #hud{position:fixed;top:0;left:0;pointer-events:none;z-index:50;width:100%;height:100%}
-    #radar{position:fixed;width:500px;height:500px;top:50%;left:50%;transform:translate(-50%, -50%);border:2px solid #f0f;border-radius:50%;box-shadow:0 0 20px rgba(255,0,255,0.5);pointer-events:none;z-index:40;opacity:0.5}
-    #radar:before{content:'';position:absolute;width:400px;height:400px;top:50px;left:50px;border:1px solid #0ff;border-radius:50%}
-    #radar:after{content:'';position:absolute;width:50px;height:50px;top:225px;left:225px;border:1px solid #f0f;border-radius:50%}
-    #radar .line{position:absolute;top:0;left:250px;width:1px;height:500px;background:#f0f;transform-origin:bottom center}
-    #radar .line:nth-child(2){transform:rotate(45deg)}
-    #radar .line:nth-child(3){transform:rotate(90deg)}
-    #radar .line:nth-child(4){transform:rotate(135deg)}
+    html,body{margin:0;padding:0;background:#000;overflow:hidden;font-family:'VT323',monospace;color:#0ff}
+    /* Reposition UI to bottom */
+    #ui{display:none}
+    #hud{position:fixed;top:0;left:0;pointer-events:none;z-index:9999;width:100%;height:100%}
+    /* Removed #radar CSS rules */
     #banner{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);font-size:46px;color:#ff00ff;text-shadow:0 0 12px #ff00ff;opacity:0;transition:opacity .6s;z-index:80;pointer-events:none;letter-spacing:4px}
     #audioIndicator{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);color:#ff00ff;padding:8px 16px;border-radius:20px;cursor:pointer;z-index:1000;border:1px solid #f0f;pointer-events:auto}
-    #title{position:fixed;top:30px;left:0;width:100%;text-align:center;font-size:40px;letter-spacing:12px;color:#f0f;text-shadow:0 0 15px #f0f,0 0 25px rgba(255,0,255,0.5);pointer-events:none;z-index:45;font-weight:bold}
-    #title span{background:linear-gradient(to bottom, #f0f, #0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 8px rgba(0,255,255,0.7))}
-    .target-marker{position:absolute;border:1px solid #f0f;width:60px;height:60px;transform:translate(-50%, -50%);opacity:1;transition:opacity 0.3s}
-    .target-marker:before,.target-marker:after{content:'';position:absolute;background:#f0f}
-    .target-marker:before{width:10px;height:1px;top:50%;left:-5px}
-    .target-marker:after{width:1px;height:10px;left:50%;top:-5px}
-    .target-marker .corner{position:absolute;width:10px;height:10px;border:1px solid #f0f}
-    .target-marker .corner:nth-child(1){top:-1px;left:-1px;border-right:none;border-bottom:none}
-    .target-marker .corner:nth-child(2){top:-1px;right:-1px;border-left:none;border-bottom:none}
-    .target-marker .corner:nth-child(3){bottom:-1px;left:-1px;border-right:none;border-top:none}
-    .target-marker .corner:nth-child(4){bottom:-1px;right:-1px;border-left:none;border-top:none}
-    .grid-floor{position:fixed;bottom:0;left:0;width:100%;height:20%;background:linear-gradient(to top, rgba(255,0,255,0.7), transparent);z-index:-1;perspective:800px;pointer-events:none;opacity:0.5}
-    .grid-floor .grid{position:absolute;bottom:0;left:0;width:100%;height:100%;background-image:linear-gradient(to right, rgba(255,0,255,0.9) 1px, transparent 1px), 
-                     linear-gradient(to bottom, rgba(255,0,255,0.9) 1px, transparent 1px);
-    background-size:40px 40px;transform:rotateX(60deg);transform-origin:bottom center}
+    #title{position:fixed;top:30px;left:0;width:100%;text-align:center;font-size:40px;letter-spacing:12px;color:#f0f;text-shadow:none;pointer-events:none;z-index:45;font-weight:bold}
+    #title span{background:linear-gradient(to bottom, #f0f, #0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:none}
+    /* Updated Target Marker Style */
+    .target-marker {
+        position: absolute;
+        width: 40px; /* Smaller marker */
+        height: 40px;
+        transform: translate(-50%, -50%);
+        opacity: 1;
+        transition: opacity 0.3s;
+        border: none; /* Remove main box border */
+    }
+    .target-marker:before, .target-marker:after {
+        content: '';
+        position: absolute;
+        background: #00ffff; /* Cyan color */
+        box-shadow: 0 0 5px #00ffff;
+    }
+    /* Top-left bracket */
+    .target-marker:before {
+        width: 10px; height: 2px;
+        top: 0; left: 0;
+    }
+    .target-marker:after {
+        width: 2px; height: 10px;
+        top: 0; left: 0;
+    }
+    /* Using corners div for other brackets */
+    .target-marker .corner {
+        position: absolute;
+        width: 2px; height: 2px; /* Use small squares for corners if needed, or hide */
+        border: none; /* Remove corner borders */
+        background: #00ffff; /* Cyan color */
+        box-shadow: 0 0 5px #00ffff;
+    }
+    /* Top-right bracket */
+    .target-marker .corner:nth-child(1) { top: 0; right: 0; width: 10px; height: 2px; }
+    .target-marker .corner:nth-child(2) { top: 0; right: 0; width: 2px; height: 10px; }
+    /* Bottom-left bracket */
+    .target-marker .corner:nth-child(3) { bottom: 0; left: 0; width: 10px; height: 2px; }
+    .target-marker .corner:nth-child(4) { bottom: 0; left: 0; width: 2px; height: 10px; }
+    /* Bottom-right bracket (Need pseudo-elements or more divs if required) */
+    /* Let's add two more divs for simplicity */
+    .target-marker .corner.br1 { bottom: 0; right: 0; width: 10px; height: 2px; }
+    .target-marker .corner.br2 { bottom: 0; right: 0; width: 2px; height: 10px; }
+
+
     canvas{display:block}
+
+    /* Responsive Media Queries for Mobile Devices */
+    @media (max-width: 768px) {
+      #ui {
+        font-size: 12px;
+        /* Keep bottom alignment */
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+      }
+      
+      #ui span {
+        margin: 2px 0;
+        letter-spacing: 0.5px;
+      }
+      
+      .shield-bar {
+        width: 80px;
+        height: 8px;
+        margin-left: 5px;
+      }
+      
+      #banner {
+        font-size: 30px;
+        letter-spacing: 2px;
+      }
+      
+      #audioIndicator {
+        padding: 5px 10px;
+        font-size: 12px;
+        bottom: 10px;
+      }
+      
+      #title {
+        font-size: 24px;
+        letter-spacing: 6px;
+        top: 15px;
+      }
+      
+      .target-marker {
+        width: 30px; /* Adjust marker size */
+        height: 30px;
+      }
+      .target-marker:before, .target-marker .corner.br1, .target-marker .corner:nth-child(1), .target-marker .corner:nth-child(3) { width: 8px; } /* Adjust bracket line lengths */
+      .target-marker:after, .target-marker .corner.br2, .target-marker .corner:nth-child(2), .target-marker .corner:nth-child(4) { height: 8px; }
+
+      /* .grid-floor CSS removed */
+    }
+
+    /* Extra adjustments for very small screens (iPhone SE, etc.) */
+    @media (max-width: 375px) {
+      #ui {
+        font-size: 10px;
+      }
+      
+      #title {
+        font-size: 18px;
+        letter-spacing: 4px;
+      }
+      
+      .target-marker {
+        width: 25px;
+        height: 25px;
+      }
+      .target-marker:before, .target-marker .corner.br1, .target-marker .corner:nth-child(1), .target-marker .corner:nth-child(3) { width: 6px; }
+      .target-marker:after, .target-marker .corner.br2, .target-marker .corner:nth-child(2), .target-marker .corner:nth-child(4) { height: 6px; }
+    }
+
+    /* ============================== EXTRA CSS inserted at top ============================== */
+    .scanlines {position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:45;mix-blend-mode:screen;background-image:repeating-linear-gradient(to bottom, rgba(255,0,255,0.02) 0px, rgba(255,0,255,0.05) 2px, rgba(255,0,255,0.02) 4px);background-size:100% 4px;opacity:0.35;} /* Reduced opacity */
   </style>
-  <!-- Three.js r150 classic build (works in Safari) -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-  <!-- BufferGeometryUtils -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/examples/js/utils/BufferGeometryUtils.js"></script>
-  <!-- Howler.js -->
+  <!-- Import map so example ESM files can resolve the bare specifier "three" -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.module.js",
+      "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/"
+    }
+  }
+  </script>
+  <!-- Howler.js (UMD) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
 </head>
 <body>
   <div id="title"><span>STARFIGHTER</span></div>
 
-  <div id="radar">
-    <div class="line"></div>
-    <div class="line"></div>
-    <div class="line"></div>
-    <div class="line"></div>
-  </div>
+  <!-- Removed #radar div -->
 
-  <div class="grid-floor">
-    <div class="grid"></div>
-  </div>
+  <!-- Removed CSS grid floor div -->
 
   <div class="target-marker" id="targetMarker">
     <div class="corner"></div>
     <div class="corner"></div>
     <div class="corner"></div>
     <div class="corner"></div>
+    <!-- Add divs for bottom-right bracket -->
+    <div class="corner br1"></div>
+    <div class="corner br2"></div>
   </div>
 
   <canvas id="hud"></canvas>
@@ -86,986 +180,1353 @@
   <div id="banner">LEVEL 1</div>
   <div id="audioIndicator">🔊 Click to enable sound</div>
 
-  <script>
-/* ============================================================== 
-   Starfighter: Frontier Rising – full 5‑level arcade narrative 
-   Controls:  Arrows  ·   Space = laser  ·   D = Death Blossom 
-   ============================================================== */
-const { Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight, ConeGeometry, TorusGeometry, MeshStandardMaterial, MeshBasicMaterial, Mesh, Vector3, BufferGeometry, Float32BufferAttribute, PointsMaterial, Points, Clock, MathUtils, SphereGeometry, Group, LineDashedMaterial, LineBasicMaterial, Line, RingGeometry, PlaneGeometry, LineSegments } = THREE;
+  <div class="scanlines"></div>
 
-let scene, camera, renderer, clock;
-let player, playerShip, playerSpeed = 0.2;
-let bullets = [];
-let enemies = [];
-let score = 0;
-let level = 1;
-let lastSpawnTime = 0;
-let spawnInterval = 1400; // Initial spawn interval for Level 1 (in ms)
-let enemySpeed = 0.05;
-let playerShield = 100;
-let hudContext;
-let sounds = {};
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.module.js';
+    import * as BufferGeometryUtils from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/utils/BufferGeometryUtils.js';
+    import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+    import { FXAAShader } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/shaders/FXAAShader.js';
+    import { ShaderPass } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/postprocessing/ShaderPass.js';
+    // ---> NEW POST-PROCESSING IMPORTS
+    import { FilmPass } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/postprocessing/FilmPass.js';
+    import { RGBShiftShader } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/shaders/RGBShiftShader.js';
+    import { VignetteShader } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/shaders/VignetteShader.js';
+    import { HueSaturationShader } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/shaders/HueSaturationShader.js';
 
-// Keep track of pressed keys
-const keysPressed = {};
+    // Expose the core THREE namespace globally (optional, but keep for now)
+    window.THREE = THREE;
 
-// Death Blossom state
-let dbReady = true;
-const DB_COOLDOWN = 15000; // milliseconds
-const DB_DURATION = 3000;  // 3 seconds of effect
-const DB_PROJECTILES = 16; // Number of projectiles in the burst
+    // Destructure from the imported THREE namespace
+    const { Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight, ConeGeometry, TorusGeometry, MeshStandardMaterial, MeshBasicMaterial, Mesh, Vector3, BufferGeometry, Float32BufferAttribute, PointsMaterial, Points, Clock, MathUtils, SphereGeometry, CircleGeometry, Group, LineDashedMaterial, LineBasicMaterial, Line, RingGeometry, PlaneGeometry, LineSegments, ShaderMaterial } = THREE; // Added ShaderMaterial
 
-// Insert new global flag for audio warmup after existing globals
-let audioWarmedUp = false;
-let isSoundOn = false;
+    // --- Core Game Logic Functions (Declared before use) ---
+    let gameIsOver = false; // Declare state flag early
 
-// --- New Global Weapon Variables ---
-const WEAPONS = { PULSE: 0, TWIN: 1, PLASMA: 2, RAIL: 3 };
-let currentWeapon = WEAPONS.PULSE;
-const cooldown = [0.16, 0.125, 0.5, 1.0]; // seconds between shots
-let lastShot = 0;
-let missileReady = true;
-let currentTargetedEnemy = null; // Add this variable to track the last target
-
-// Add the ticker utility for animations
-const ticker = new Set();
-
-// Create the flash overlay for the Tron effect
-const flash = document.createElement('div');
-Object.assign(flash.style, {
-  position: 'fixed', top: 0, left: 0, width: '100%', height: '4px',
-  background: '#00eaff', opacity: 0, zIndex: 70, boxShadow: '0 0 10px #0ff',
-  pointerEvents: 'none', transition: 'opacity .15s ease-out'
-});
-document.body.appendChild(flash);
-
-// Add new global variables after the existing ones
-const SHIELD_REGEN_RATE = 5; // Shield points per second
-const SHIELD_REGEN_DELAY = 3000; // ms to wait before shield starts regenerating
-let lastDamageTime = 0; // Track when player was last hit
-
-// Add new enemy behavior constants
-const ENEMY_BEHAVIORS = {
-    STRAIGHT: 0,
-    SINE_WAVE: 1,
-    CIRCLE_STRAFE: 2,
-    PURSUIT: 3
-};
-
-// Add after existing enemy-related variables
-let enemyFormations = [];
-const FORMATION_TYPES = {
-    V: 0,
-    WALL: 1,
-    DIAMOND: 2
-};
-
-function init() {
-    scene = new Scene();
-    clock = new Clock();
-    
-    camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 5, 15); // Slightly elevated view
-    
-    renderer = new WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x110022, 1); // Dark purple space background
-    document.body.appendChild(renderer.domElement);
-    
-    // Initialize HUD canvas
-    const hudCanvas = document.getElementById('hud');
-    hudCanvas.width = window.innerWidth;
-    hudCanvas.height = window.innerHeight;
-    hudContext = hudCanvas.getContext('2d');
-    
-    // Lights
-    const ambientLight = new AmbientLight(0x404040, 2);
-    scene.add(ambientLight);
-    const directionalLight = new DirectionalLight(0xffffff, 1.5);
-    directionalLight.position.set(5, 10, 7.5);
-    scene.add(directionalLight);
-    
-    // Grid Helper (Floor)
-    const gridSize = 200;
-    const gridDivisions = 40;
-    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x00ffff, 0xff00ff);
-    gridHelper.position.y = -5; // Position it below the player
-    scene.add(gridHelper);
-    
-    // Starfield
-    const starsGeometry = new BufferGeometry();
-    const starsVertices = [];
-    for (let i = 0; i < 10000; i++) {
-        const x = MathUtils.randFloatSpread(2000);
-        const y = MathUtils.randFloatSpread(2000);
-        const z = MathUtils.randFloatSpread(2000);
-        starsVertices.push(x, y, z);
+    function gameActive() {
+        return !gameIsOver;
     }
-    starsGeometry.setAttribute('position', new Float32BufferAttribute(starsVertices, 3));
-    const starsMaterial = new PointsMaterial({ color: 0xaaaaaa, size: 0.7, sizeAttenuation: true });
-    const starField = new Points(starsGeometry, starsMaterial);
-    scene.add(starField);
-    
-    // Player Ship Group
-    player = new Group();
-    scene.add(player);
-    
-    // Create a more complex ship model
-    playerShip = createPlayerShip();
-    player.add(playerShip);
-    
-    // Add engine glow
-    const engineGlow = new Mesh(
-        new SphereGeometry(0.2, 16, 16),
-        new MeshBasicMaterial({ 
-            color: 0x00ffff,
-            transparent: true,
-            opacity: 0.7
-        })
-    );
-    engineGlow.position.z = 1;
-    player.add(engineGlow);
-    
-    // Create targeting system
-    createTargetingSystem();
-    
-    // Create background mountains
-    createMountains();
-    
-    // Setup sounds
-    setupSounds();
-    
-    // Event Listeners
-    window.addEventListener('resize', onWindowResize, false);
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
-    
-    // Initialize HUD
-    updateHUD();
-    
-    // Radar setup
-    initRadar();
 
-    // Add the flash element to the body
+    function gameOver() {
+        if (gameIsOver) return; // Prevent multiple calls
+        gameIsOver = true;
+        console.log('Game Over');
+        const banner = document.getElementById('banner');
+        banner.textContent = `GAME OVER | SCORE: ${score}`;
+        banner.style.opacity = '1';
+        if (isSoundOn && sounds.music) sounds.music.stop();
+    }
+
+    // --- Variable Declarations ---
+    let scene, camera, renderer, clock, composer;
+    let player, playerShip, playerSpeed = 0.2;
+    let bullets = [];
+    let enemies = [];
+    let score = 0;
+    let level = 1;
+    let lastSpawnTime = 0;
+    let spawnInterval = 1400; // Initial spawn interval for Level 1 (in ms)
+    let enemySpeed = 0.05;
+    let playerShield = 100;
+    let hudContext;
+    let sounds = {};
+    let gridMat; // <<< Global for grid material
+
+    // === Weapon energy system ===
+    const MAX_ENERGY = 100;
+    let weaponEnergy = 100;
+    const ENERGY_COST = [5, 7, 15, 25]; // per weapon type (index matches WEAPONS)
+    const ENERGY_RECHARGE_RATE = 20; // points per second
+
+    // Keep track of pressed keys
+    const keysPressed = {};
+
+    // Death Blossom state
+    let dbReady = true;
+    const DB_COOLDOWN = 15000; // milliseconds
+    const DB_DURATION = 3000;  // 3 seconds of effect
+    const DB_PROJECTILES = 16; // Number of projectiles in the burst
+
+    // Insert new global flag for audio warmup after existing globals
+    let audioWarmedUp = false;
+    let isSoundOn = false;
+
+    // --- New Global Weapon Variables ---
+    const WEAPONS = { PULSE: 0, TWIN: 1, PLASMA: 2, RAIL: 3 };
+    let currentWeapon = WEAPONS.PULSE;
+    const cooldown = [0.16, 0.125, 0.5, 1.0]; // seconds between shots
+    let lastShot = 0;
+    let missileReady = true;
+    let currentTargetedEnemy = null; // Add this variable to track the last target
+    let lastLockSoundTime = 0;
+    const LOCK_SOUND_COOLDOWN = 1000; // cooldown period in ms
+    let lastLockSoundEnemy = null;
+
+    // Add the ticker utility for animations
+    const ticker = new Set();
+
+    // Create the flash overlay for the Tron effect
+    const flash = document.createElement('div');
+    Object.assign(flash.style, {
+      position: 'fixed', top: 0, left: 0, width: '100%', height: '4px',
+      background: '#00eaff', opacity: 0, zIndex: 70, boxShadow: '0 0 10px #0ff',
+      pointerEvents: 'none', transition: 'opacity .15s ease-out'
+    });
     document.body.appendChild(flash);
 
-    // Add event listener to audio indicator
-    document.getElementById('audioIndicator').addEventListener('click', function() {
-        if (!audioWarmedUp) {
-            // Initialize sounds on first click
-            audioWarmedUp = true;
-            isSoundOn = true;
-            sounds.music.play(); 
-            this.textContent = '🔊 Sound ON';
-            this.style.backgroundColor = "rgba(255,0,255,0.3)";
-        } else {
-            // Toggle sound on/off
-            isSoundOn = !isSoundOn;
-            if (isSoundOn) {
-                sounds.music.play();
+    // Add new global variables after the existing ones
+    const SHIELD_REGEN_RATE = 5; // Shield points per second
+    const SHIELD_REGEN_DELAY = 3000; // ms to wait before shield starts regenerating
+    let lastDamageTime = 0; // Track when player was last hit
+
+    // Add new enemy behavior constants
+    const ENEMY_BEHAVIORS = {
+        STRAIGHT: 0,
+        SINE_WAVE: 1,
+        CIRCLE_STRAFE: 2,
+        PURSUIT: 3
+    };
+
+    // Re-introduced: formation presets + storage (was commented out earlier)
+    const FORMATION_TYPES = {
+        V: 0,
+        WALL: 1,
+        DIAMOND: 2
+    };
+    let enemyFormations = [];
+
+    // --- Core Game Logic Functions (Declared before use) ---
+    // function gameActive() {
+    //     return !gameIsOver;
+    // }
+
+    // function gameOver() {
+    //     if (gameIsOver) return; // Prevent multiple calls
+    //     gameIsOver = true;
+    //     console.log('Game Over');
+    //     const banner = document.getElementById('banner');
+    //     banner.textContent = `GAME OVER | SCORE: ${score}`;
+    //     banner.style.opacity = '1';
+    //     if (isSoundOn && sounds.music) sounds.music.stop();
+    // }
+
+    // --- Game State & Core Variables ---
+    // let gameIsOver = false; // Moved earlier
+
+    // // Player state variables
+    // let player, playerShip, playerSpeed = 0.2;
+    // let playerShield = 100;
+    // let lastDamageTime = 0;
+    // const SHIELD_REGEN_RATE = 5; // Shield points per second
+    // const SHIELD_REGEN_DELAY = 3000; // ms to wait
+
+    // Inserted early within global variable section
+    // Tilt sensor values (normalised -1..1) – defined early so gameLoop can access
+    let tiltX = 0, tiltY = 0;
+
+    // --- Grid Shader Definitions ---
+    const gridVertexShader = `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `;
+
+    const gridFragmentShader = `
+        varying vec2 vUv;
+        uniform float time;
+        uniform vec3 color1;
+        uniform vec3 color2;
+        uniform float lineThickness;
+        uniform float lineSpeed;
+        uniform float fadeDistance;
+        uniform float gridScale;
+
+        float grid(vec2 coord, float thickness, float speed) {
+            vec2 gridCoord = coord * gridScale; // dynamic scale
+            gridCoord.y += time * speed; // Animate the grid lines moving towards the player
+
+            vec2 lines = abs(fract(gridCoord) - 0.5);
+            float distToLine = min(lines.x, lines.y);
+
+            return smoothstep(0.0, thickness, distToLine);
+        }
+
+        void main() {
+            float gridFactor = grid(vUv, lineThickness, lineSpeed);
+
+            // Fade out grid lines in the distance (higher vUv.y)
+            float fade = smoothstep(1.0, 1.0 - fadeDistance, vUv.y);
+
+            // Mix colors based on grid lines
+            vec3 finalColor = mix(color1, color2, gridFactor);
+
+            // Apply fade and ensure it's transparent
+            gl_FragColor = vec4(finalColor, (1.0 - gridFactor) * fade);
+        }
+    `;
+
+    function init() {
+        scene = new Scene();
+        clock = new Clock();
+        
+        camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 15); // Slightly elevated view
+        
+        renderer = new WebGLRenderer({ antialias: true, alpha: true });
+            // Use device pixel ratio for crisp visuals on mobile screens
+            renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x110022, 1); // Dark purple space background
+        document.body.appendChild(renderer.domElement);
+            
+            /* ----------------- POST-PROCESSING BLOOM ----------------- */
+            // Use directly imported addon names
+            composer = new EffectComposer(renderer);
+            const renderPass = new RenderPass(scene, camera);
+            composer.addPass(renderPass);
+
+            // Neon bloom to give emissive objects a vibrant glow
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.6, 0.04, 0.85);
+            bloomPass.threshold = 0.3;   // only brightest pixels glow
+            bloomPass.strength  = 0.6;   // even softer glow
+            bloomPass.radius    = 0.04;  // tighter halo
+            composer.addPass(bloomPass);
+
+            // Retro VHS-style grain & scanlines DISABLED for crisp image
+            // const filmPass = new FilmPass(0.04, 0.004, 648, false);
+            // composer.addPass(filmPass);
+
+            // Subtle chromatic aberration
+            const rgbShiftPass = new ShaderPass(RGBShiftShader);
+            rgbShiftPass.uniforms['amount'].value = 0.0003;
+            composer.addPass(rgbShiftPass);
+
+            // Subtle hue / saturation grading to match mock-up (shift toward magenta / cyan)
+            const gradePass = new ShaderPass(HueSaturationShader);
+            gradePass.uniforms['hue'].value = 0.02;        // slight shift toward magenta
+            gradePass.uniforms['saturation'].value = 0.25; // boost saturation
+            composer.addPass(gradePass);
+
+            // Optional FXAA for high-dpi screens (place before final vignette)
+            const pixelRatio = window.devicePixelRatio || 1;
+            let fxaaPass = null;
+            if (pixelRatio > 1) {
+                fxaaPass = new ShaderPass(FXAAShader);
+                fxaaPass.material.uniforms['resolution'].value.set(1 / (window.innerWidth * pixelRatio), 1 / (window.innerHeight * pixelRatio));
+                composer.addPass(fxaaPass);
+            }
+
+            // Vignette darkens the edges, final pass renders to screen
+            const vignettePass = new ShaderPass(VignetteShader);
+            vignettePass.uniforms['offset'].value = 0.95;
+            vignettePass.uniforms['darkness'].value = 1.2;
+            vignettePass.renderToScreen = true;
+            composer.addPass(vignettePass);
+        
+        // Initialize HUD canvas
+        const hudCanvas = document.getElementById('hud');
+        hudCanvas.width = window.innerWidth;
+        hudCanvas.height = window.innerHeight;
+        hudContext = hudCanvas.getContext('2d');
+        
+        // Lights
+        const ambientLight = new AmbientLight(0x404040, 2);
+        scene.add(ambientLight);
+        const directionalLight = new DirectionalLight(0xffffff, 1.5);
+        directionalLight.position.set(5, 10, 7.5);
+        scene.add(directionalLight);
+        
+            // Starfield (re-written with coloured, twinkling stars)
+        const starsGeometry = new BufferGeometry();
+        const starsVertices = [];
+            const starColors = [];
+            const palette = [0xffffff, 0x00ffff, 0xff00ff, 0x99ccff];
+            for (let i = 0; i < 8000; i++) {
+            const x = MathUtils.randFloatSpread(2000);
+            const y = MathUtils.randFloatSpread(2000);
+            const z = MathUtils.randFloatSpread(2000);
+            starsVertices.push(x, y, z);
+                const c = new THREE.Color(palette[Math.floor(Math.random() * palette.length)]);
+                starColors.push(c.r, c.g, c.b);
+        }
+        starsGeometry.setAttribute('position', new Float32BufferAttribute(starsVertices, 3));
+            starsGeometry.setAttribute('color', new Float32BufferAttribute(starColors, 3));
+            const starsMaterial = new PointsMaterial({ size: 0.9, vertexColors: true, transparent: true, depthWrite:false });
+        const starField = new Points(starsGeometry, starsMaterial);
+        scene.add(starField);
+            // Twinkle effect
+            ticker.add(() => {
+                const t = clock.getElapsedTime();
+                starField.material.opacity = 0.6 + Math.sin(t * 4.0) * 0.25;
+            });
+            
+            // NEW: Add Shader Grid Floor
+            createGridFloor();
+
+            // Update fog colour for deeper purple - Handled in createMountains now
+
+        // Player Ship Group
+        player = new Group();
+        scene.add(player);
+        
+        // Create a more complex ship model
+        playerShip = createPlayerShip();
+        player.add(playerShip);
+        
+        // Add engine glow
+        const engineGlow = new Mesh(
+            new SphereGeometry(0.2, 16, 16),
+            new MeshBasicMaterial({ 
+                color: 0x00ffff,
+                transparent: true,
+                opacity: 0.7
+            })
+        );
+        engineGlow.position.z = 1;
+        player.add(engineGlow);
+        
+        // Create targeting system
+        createTargetingSystem();
+        
+        // Create background mountains
+        createMountains();
+            // Gradient sky backdrop
+            createSkyGradient();
+            // ---> NEW: Add neon sun / horizon disc behind mountains
+            createSunBackdrop();
+        
+        // Setup sounds
+        setupSounds();
+        
+        // Event Listeners
+        window.addEventListener('resize', onWindowResize, false);
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+            // Tap or click anywhere on the main canvas to shoot (except UI buttons)
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                // Ignore taps on interactive buttons (they have pointer-events:auto)
+                if (e.target.closest('button')) return;
+                e.preventDefault();
+                attemptFire();
+            }, { passive:false });
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button')) return;
+                attemptFire();
+            });
+        
+        // Initialize HUD
+        updateHUD();
+        
+        // Radar setup
+        initRadar();
+
+        // Add the flash element to the body
+        document.body.appendChild(flash);
+
+        // Add event listener to audio indicator
+        document.getElementById('audioIndicator').addEventListener('click', function() {
+            if (!audioWarmedUp) {
+                // Initialize sounds on first click
+                audioWarmedUp = true;
+                isSoundOn = true;
+                sounds.music.play(); 
                 this.textContent = '🔊 Sound ON';
                 this.style.backgroundColor = "rgba(255,0,255,0.3)";
             } else {
-                // Pause all sounds if toggling off
-                Object.keys(sounds).forEach(key => {
-                    sounds[key].pause();
-                });
-                this.textContent = '🔇 Sound OFF';
-                this.style.backgroundColor = "rgba(0,0,0,0.3)";
+                // Toggle sound on/off
+                isSoundOn = !isSoundOn;
+                if (isSoundOn) {
+                    sounds.music.play();
+                    this.textContent = '🔊 Sound ON';
+                    this.style.backgroundColor = "rgba(255,0,255,0.3)";
+                } else {
+                    // Pause all sounds if toggling off
+                    Object.keys(sounds).forEach(key => {
+                        sounds[key].pause();
+                    });
+                    this.textContent = '🔇 Sound OFF';
+                    this.style.backgroundColor = "rgba(0,0,0,0.3)";
+                }
+            }
+        });
+
+            // Reset game state for a new game
+            gameIsOver = false;
+            score = 0;
+            level = 1;
+            playerShield = 100;
+            // Clear existing enemies/bullets if restarting
+            bullets.forEach(b => { if (b.mesh) scene.remove(b.mesh); });
+            bullets = [];
+            enemies.forEach(e => scene.remove(e));
+            enemies = [];
+            // enemyFormations.forEach(f => scene.remove(f.group));
+            // enemyFormations = [];
+            updateHUD();
+            updateShieldBar();
+            document.getElementById('banner').style.opacity = '0'; // Hide game over banner
+            if (isSoundOn && sounds.music) sounds.music.play(); // Restart music if sound on
+    }
+
+    function createPlayerShip() {
+        const shipGroup = new Group();
+
+        // Main fuselage - More angular shape
+        const fuselageShape = new THREE.Shape();
+        fuselageShape.moveTo(0, 0.6);
+        fuselageShape.lineTo(-0.4, 0.2);
+        fuselageShape.lineTo(-0.4, -0.8); // Longer body
+        fuselageShape.lineTo(0.4, -0.8);
+        fuselageShape.lineTo(0.4, 0.2);
+        fuselageShape.lineTo(0, 0.6);
+
+        const extrudeSettings = { depth: 2.5, bevelEnabled: false }; // Longer extrusion
+        const fuselageGeo = new THREE.ExtrudeGeometry(fuselageShape, extrudeSettings);
+        fuselageGeo.center(); // Center the geometry
+        fuselageGeo.rotateX(Math.PI / 2); // Orient correctly
+
+        const fuselageMat = new MeshStandardMaterial({
+            color: 0x3a3a5e, // Darker blue/grey
+            metalness: 0.6,
+            roughness: 0.4,
+            flatShading: true // Gives a low-poly look
+        });
+        const fuselage = new Mesh(fuselageGeo, fuselageMat);
+        shipGroup.add(fuselage);
+
+        // Wings - More aggressive sweep
+        const wingShape = new THREE.Shape();
+        wingShape.moveTo(0.4, 0); // Start attached to fuselage
+        wingShape.lineTo(2.5, -0.5); // Swept back and slightly down
+        wingShape.lineTo(2.0, -1.5); // Angled trailing edge
+        wingShape.lineTo(0.4, -1.0); // Connect back towards fuselage
+
+        const wingExtrudeSettings = { depth: 0.15, bevelEnabled: false }; // Thinner wings
+        const wingGeo = new THREE.ExtrudeGeometry(wingShape, wingExtrudeSettings);
+        wingGeo.translate(0, 0, -0.075); // Center depth
+
+        const wingMat = new MeshStandardMaterial({
+            color: 0x4f4f7a, // Slightly lighter than fuselage
+            metalness: 0.5,
+            roughness: 0.5,
+            flatShading: true
+        });
+
+        // Create left and right wings
+        const wingRight = new Mesh(wingGeo, wingMat);
+        wingRight.position.set(0, 0, -0.2); // Position relative to fuselage center
+        shipGroup.add(wingRight);
+
+        const wingLeft = new Mesh(wingGeo.clone(), wingMat);
+        wingLeft.scale.x = -1; // Mirror geometry
+        wingLeft.position.set(0, 0, -0.2);
+        shipGroup.add(wingLeft);
+
+        // Engine pods (integrated into wings/fuselage)
+        const engineGeo = new THREE.CylinderGeometry(0.25, 0.35, 1.0, 8); // Tapered cylinder
+        engineGeo.rotateX(Math.PI / 2);
+        engineGeo.translate(0, 0, 0.9); // Position towards the back
+
+        const engineMat = new MeshStandardMaterial({
+            color: 0x2c2c4a, // Dark engine color
+            metalness: 0.7,
+            roughness: 0.3,
+            flatShading: true
+        });
+
+        const engineRight = new Mesh(engineGeo, engineMat);
+        engineRight.position.x = 0.8; // Position out on the wing/fuselage join
+        engineRight.position.y = -0.4;
+        shipGroup.add(engineRight);
+
+        const engineLeft = new Mesh(engineGeo.clone(), engineMat);
+        engineLeft.position.x = -0.8;
+        engineLeft.position.y = -0.4;
+        shipGroup.add(engineLeft);
+
+        // Engine Glows (separate meshes for bloom)
+        const engineGlowMat = new MeshBasicMaterial({
+            color: 0x00ffff, // Bright Cyan Glow
+            transparent: true,
+            opacity: 0.8
+        });
+        const engineGlowGeo = new SphereGeometry(0.3, 16, 8); // Simple sphere glow
+        engineGlowGeo.translate(0, 0, 1.4); // Position slightly behind engine pod
+
+        const glowRight = new Mesh(engineGlowGeo, engineGlowMat);
+        glowRight.position.x = 0.8;
+        glowRight.position.y = -0.4;
+        shipGroup.add(glowRight);
+
+        const glowLeft = new Mesh(engineGlowGeo.clone(), engineGlowMat);
+        glowLeft.position.x = -0.8;
+        glowLeft.position.y = -0.4;
+        shipGroup.add(glowLeft);
+
+        // Cockpit - Simple sphere for now, can be detailed later
+        const cockpitGeo = new SphereGeometry(0.3, 16, 16, 0, Math.PI * 2, 0, Math.PI/2);
+        cockpitGeo.rotateX(Math.PI / 2);
+        cockpitGeo.translate(0, 0.25, -0.3); // Position slightly forward and up
+        const cockpitMat = new MeshStandardMaterial({
+            color: 0xaaaaee, // Light blue/grey
+            metalness: 0.2,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.5
+        });
+        const cockpit = new Mesh(cockpitGeo, cockpitMat);
+        shipGroup.add(cockpit);
+
+        // Add some emissive cyan details (e.g., lines on wings)
+        const detailMat = new MeshBasicMaterial({ color: 0x00ffff });
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0.6, -0.2, -0.1), new THREE.Vector3(1.8, -0.6, -0.1), // Top wing line
+            new THREE.Vector3(0.6, -0.8, -0.1), new THREE.Vector3(1.5, -1.2, -0.1) // Bottom wing line
+        ]);
+
+        const detailLinesRight = new THREE.LineSegments(lineGeo, detailMat);
+        shipGroup.add(detailLinesRight);
+
+        const detailLinesLeft = new THREE.LineSegments(lineGeo.clone(), detailMat);
+        detailLinesLeft.scale.x = -1;
+        shipGroup.add(detailLinesLeft);
+
+        // Scale the whole ship slightly if needed
+        shipGroup.scale.setScalar(0.8);
+
+        return shipGroup;
+    }
+
+    function createMountains() {
+        // Create a more detailed mountain geometry with more segments
+        const mountainGeometry = new PlaneGeometry(1000, 200, 80, 30);
+        
+        // Create a solid material with gradient colors for the base mountains
+        const mountainMaterial = new MeshStandardMaterial({
+            color: 0xff00ff,           // Magenta color
+            emissive: 0x000000,        // no emissive to avoid bloom
+            emissiveIntensity: 0.0,
+            wireframe: false,          // Solid, not wireframe
+            flatShading: true,         // Low-poly look
+            opacity: 1.0               // Full opacity
+        });
+
+        // Displace vertices to create more interesting mountain shapes
+        const positionAttribute = mountainGeometry.getAttribute('position');
+        const peakHeight = 50;         // Higher peaks for more visibility
+        const frequency = 0.04;
+        const secondaryFreq = 0.08;    // Secondary frequency for more detail
+
+        // Create array for vertex colors to make a gradient
+        const colors = [];
+        const color1 = new THREE.Color(0xff00ff);  // Magenta (top)
+        const color2 = new THREE.Color(0xaa00ff);  // Purple (middle)
+        const color3 = new THREE.Color(0x330066);  // Dark purple (bottom)
+
+        for (let i = 0; i < positionAttribute.count; i++) {
+            const x = positionAttribute.getX(i);
+            const y = positionAttribute.getY(i);
+            
+            // More complex mountain generation with multiple frequencies
+            let z = Math.sin(x * frequency) * peakHeight;
+            z += Math.sin(x * frequency * 0.4 + 0.5) * peakHeight * 0.7;
+            z += Math.sin(x * secondaryFreq + 2) * 15;    // Increase detail depth
+            z += Math.cos(x * frequency * 0.3) * 20;      // Add variety
+            
+            // Add some randomness for texture
+            z += Math.random() * 8;
+            
+            // Higher y values (upper part of plane) get more height
+            const yInfluence = (y + 100) / 200;  // Normalize y to 0-1 range
+            z *= Math.max(0.1, yInfluence * 1.8);  // Scale height by y position
+            
+            // Only raise vertices above a certain height
+            if (y > -90) {
+                positionAttribute.setZ(i, Math.max(0, z)); // Ensure peaks don't go below 0
+            }
+
+            // Generate a gradient color based on height
+            let vertexColor;
+            if (z > peakHeight * 0.7) {
+                // Top part - magenta to purple gradient
+                const t = (z - peakHeight * 0.7) / (peakHeight * 0.3);
+                vertexColor = color1.clone().lerp(color2, 1 - t);
+            } else {
+                // Lower part - purple to dark purple gradient
+                const t = z / (peakHeight * 0.7);
+                vertexColor = color2.clone().lerp(color3, t);
+            }
+            
+            // Add colors to array
+            colors.push(vertexColor.r, vertexColor.g, vertexColor.b);
+        }
+        
+        // Add colors to geometry
+        mountainGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        
+        // Update the material to use vertex colors
+        mountainMaterial.vertexColors = true;
+        
+        // Compute normals for proper lighting
+        mountainGeometry.computeVertexNormals();
+
+        const mountains = new THREE.Mesh(mountainGeometry, mountainMaterial);
+        
+        // Position mountains further back
+        mountains.position.set(0, -15, -300);
+        mountains.rotation.x = -Math.PI / 2.2;
+        
+        // Create a wireframe overlay for the mountains using the same geometry
+        const wireframeMaterial = new MeshBasicMaterial({
+            color: 0xff00ff,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.5
+        });
+        
+        const wireframeMountains = new THREE.Mesh(mountainGeometry.clone(), wireframeMaterial);
+        // Position wireframe slightly in front of solid mountains to avoid z-fighting
+        wireframeMountains.position.set(0, -14.9, -299);
+        wireframeMountains.rotation.x = -Math.PI / 2.2;
+        
+        // Create a purplish fog effect behind the mountains for depth
+        // ---> Deeper Fog settings
+        const mountainFog = new THREE.Fog(0x110022, 80, 800); // Near=80, Far=800
+        scene.fog = mountainFog;
+        
+        scene.add(mountains);
+        scene.add(wireframeMountains);
+        
+        // Add a second, darker mountain range in the far distance
+        const farMountainGeometry = new THREE.PlaneGeometry(1600, 150, 80, 20);
+        const farMountainMaterial = new MeshStandardMaterial({
+            color: 0x550066,           // Dark purple
+            emissive: 0x220033,        // Slight glow
+            emissiveIntensity: 0.3,
+            wireframe: false,
+            flatShading: true
+        });
+        
+        // Displace vertices for the far mountains
+        const farPositionAttribute = farMountainGeometry.getAttribute('position');
+        const farPeakHeight = 35;      // Increased height
+        const farFrequency = 0.015;
+        
+        // Far mountain colors
+        const farColors = [];
+        const farColor1 = new THREE.Color(0x660066);  // Dark purple (top)
+        const farColor2 = new THREE.Color(0x330044);  // Darker purple (bottom)
+        
+        for (let i = 0; i < farPositionAttribute.count; i++) {
+            const x = farPositionAttribute.getX(i);
+            const y = farPositionAttribute.getY(i);
+            
+            // Simple displacement for distant mountains
+            let z = Math.sin(x * farFrequency) * farPeakHeight;
+            z += Math.sin(x * farFrequency * 0.6) * farPeakHeight * 0.6;
+            z += Math.random() * 4; // Add some randomness
+            
+            // Only raise vertices in the upper part
+            if (y > -60) {
+                farPositionAttribute.setZ(i, Math.max(0, z));
+            }
+            
+            // Add gradient color
+            const t = z / farPeakHeight;
+            const color = farColor1.clone().lerp(farColor2, 1 - t);
+            farColors.push(color.r, color.g, color.b);
+        }
+        
+        // Add colors to geometry
+        farMountainGeometry.setAttribute('color', new THREE.Float32BufferAttribute(farColors, 3));
+        farMountainMaterial.vertexColors = true;
+        
+        farMountainGeometry.computeVertexNormals();
+        
+        const farMountains = new THREE.Mesh(farMountainGeometry, farMountainMaterial);
+        farMountains.position.set(0, -35, -550);
+        farMountains.rotation.x = -Math.PI / 2.5;
+        scene.add(farMountains);
+        
+        // Add wireframe to far mountains too
+        const farWireframeMaterial = new MeshBasicMaterial({
+            color: 0x800080,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.4
+        });
+        
+        const farWireframeMountains = new THREE.Mesh(farMountainGeometry.clone(), farWireframeMaterial);
+        farWireframeMountains.position.set(0, -34.9, -549);
+        farWireframeMountains.rotation.x = -Math.PI / 2.5;
+        scene.add(farWireframeMountains);
+        
+        // Add a horizon glow effect - bright line at the horizon
+        const horizonGeometry = new THREE.PlaneGeometry(2000, 15);
+        const horizonMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        const horizon = new THREE.Mesh(horizonGeometry, horizonMaterial);
+        horizon.position.set(0, -40, -500);
+        horizon.rotation.x = -Math.PI / 2;
+        scene.add(horizon);
+    }
+
+        // Gradient sky using a huge inverted sphere and canvas texture
+        function createSkyGradient() {
+            const size = 2048;
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const grd = ctx.createLinearGradient(0, 0, 0, size);
+            grd.addColorStop(0, '#0a0033');  // deep space blue
+            grd.addColorStop(0.4, '#23004d'); // purple mid
+            grd.addColorStop(1, '#330033');  // dark violet at horizon
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, 1, size);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.LinearFilter;
+            texture.minFilter = THREE.LinearFilter;
+            const skyGeo = new THREE.SphereGeometry(800, 32, 15);
+            // Invert sphere so faces point inward
+            skyGeo.scale(-1, 1, 1);
+            const skyMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide });
+            const skyMesh = new THREE.Mesh(skyGeo, skyMat);
+            scene.add(skyMesh);
+        }
+
+        // ====================  NEW HELPER  ====================
+        function createSunBackdrop() {
+            // Large glowing disc positioned on the horizon
+            const sunGeometry = new THREE.CircleGeometry(60, 64);
+            const sunMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff00aa,
+                transparent: true,
+                opacity: 0.4
+            });
+            const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+            sun.position.set(0, 30, -550);
+            scene.add(sun);
+
+            // Add horizontal "scan" bars across the sun for retro look
+            const barMaterial = new THREE.MeshBasicMaterial({ color: 0xff00aa, transparent: true, opacity: 0.6 });
+            const barHeight = 1.5;
+            for (let i = -8; i <= 8; i++) {
+                const barGeo = new THREE.PlaneGeometry(120, barHeight);
+                const bar = new THREE.Mesh(barGeo, barMaterial);
+                bar.position.set(0, 30 + i * (barHeight * 1.8), -549.5);
+                scene.add(bar);
             }
         }
-    });
-}
 
-function createPlayerShip() {
-    const shipGroup = new Group();
-    
-    // Main body
-    const bodyGeometry = new ConeGeometry(0.5, 2, 5);
-    const bodyMaterial = new MeshStandardMaterial({
-        color: 0xff00ff,
-        emissive: 0xff00ff,
-        emissiveIntensity: 0.5,
-        wireframe: true
-    });
-    const body = new Mesh(bodyGeometry, bodyMaterial);
-    body.rotation.x = Math.PI / 2; // Point forward
-    shipGroup.add(body);
-    
-    // Wings
-    const wingGeometry = new THREE.BoxGeometry(2, 0.1, 0.8);
-    const wingMaterial = new MeshStandardMaterial({
-        color: 0x00ffff,
-        emissive: 0x00ffff,
-        emissiveIntensity: 0.3,
-        wireframe: true
-    });
-    const wings = new Mesh(wingGeometry, wingMaterial);
-    wings.position.z = 0.4;
-    shipGroup.add(wings);
-    
-    // Cockpit
-    const cockpitGeometry = new SphereGeometry(0.3, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-    const cockpitMaterial = new MeshStandardMaterial({
-        color: 0xffffff,
-        emissive: 0x00ffff,
-        emissiveIntensity: 0.3,
-        transparent: true,
-        opacity: 0.7
-    });
-    const cockpit = new Mesh(cockpitGeometry, cockpitMaterial);
-    cockpit.position.y = 0.2;
-    cockpit.rotation.x = Math.PI / 2;
-    shipGroup.add(cockpit);
-    
-    return shipGroup;
-}
+    // ==================== NEW GRID FLOOR FUNCTION ====================
+    function createGridFloor() {
+        const gridPlaneGeo = new PlaneGeometry(200, 400, 20, 40); // Width, Height, Segments
 
-function createMountains() {
-    // Create a more detailed mountain geometry with more segments
-    const mountainGeometry = new PlaneGeometry(1000, 200, 80, 30);
-    
-    // Create a solid material with gradient colors for the base mountains
-    const mountainMaterial = new MeshStandardMaterial({
-        color: 0xff00ff,           // Magenta color
-        emissive: 0xff00ff,        // Strong emissive glow
-        emissiveIntensity: 0.5,    // Control glow intensity
-        wireframe: false,          // Solid, not wireframe
-        flatShading: true,         // Low-poly look
-        opacity: 1.0               // Full opacity
-    });
-
-    // Displace vertices to create more interesting mountain shapes
-    const positionAttribute = mountainGeometry.getAttribute('position');
-    const peakHeight = 50;         // Higher peaks for more visibility
-    const frequency = 0.04;
-    const secondaryFreq = 0.08;    // Secondary frequency for more detail
-
-    // Create array for vertex colors to make a gradient
-    const colors = [];
-    const color1 = new THREE.Color(0xff00ff);  // Magenta (top)
-    const color2 = new THREE.Color(0xaa00ff);  // Purple (middle)
-    const color3 = new THREE.Color(0x330066);  // Dark purple (bottom)
-
-    for (let i = 0; i < positionAttribute.count; i++) {
-        const x = positionAttribute.getX(i);
-        const y = positionAttribute.getY(i);
-        
-        // More complex mountain generation with multiple frequencies
-        let z = Math.sin(x * frequency) * peakHeight;
-        z += Math.sin(x * frequency * 0.4 + 0.5) * peakHeight * 0.7;
-        z += Math.sin(x * secondaryFreq + 2) * 15;    // Increase detail depth
-        z += Math.cos(x * frequency * 0.3) * 20;      // Add variety
-        
-        // Add some randomness for texture
-        z += Math.random() * 8;
-        
-        // Higher y values (upper part of plane) get more height
-        const yInfluence = (y + 100) / 200;  // Normalize y to 0-1 range
-        z *= Math.max(0.1, yInfluence * 1.8);  // Scale height by y position
-        
-        // Only raise vertices above a certain height
-        if (y > -90) {
-            positionAttribute.setZ(i, Math.max(0, z)); // Ensure peaks don't go below 0
-        }
-
-        // Generate a gradient color based on height
-        let vertexColor;
-        if (z > peakHeight * 0.7) {
-            // Top part - magenta to purple gradient
-            const t = (z - peakHeight * 0.7) / (peakHeight * 0.3);
-            vertexColor = color1.clone().lerp(color2, 1 - t);
-        } else {
-            // Lower part - purple to dark purple gradient
-            const t = z / (peakHeight * 0.7);
-            vertexColor = color2.clone().lerp(color3, t);
-        }
-        
-        // Add colors to array
-        colors.push(vertexColor.r, vertexColor.g, vertexColor.b);
-    }
-    
-    // Add colors to geometry
-    mountainGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    
-    // Update the material to use vertex colors
-    mountainMaterial.vertexColors = true;
-    
-    // Compute normals for proper lighting
-    mountainGeometry.computeVertexNormals();
-
-    const mountains = new THREE.Mesh(mountainGeometry, mountainMaterial);
-    
-    // Position mountains further back
-    mountains.position.set(0, -15, -300);
-    mountains.rotation.x = -Math.PI / 2.2;
-    
-    // Create a wireframe overlay for the mountains using the same geometry
-    const wireframeMaterial = new MeshBasicMaterial({
-        color: 0xff00ff,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.5
-    });
-    
-    const wireframeMountains = new THREE.Mesh(mountainGeometry.clone(), wireframeMaterial);
-    // Position wireframe slightly in front of solid mountains to avoid z-fighting
-    wireframeMountains.position.set(0, -14.9, -299);
-    wireframeMountains.rotation.x = -Math.PI / 2.2;
-    
-    // Create a purplish fog effect behind the mountains for depth
-    const mountainFog = new THREE.Fog(0x110022, 150, 600);
-    scene.fog = mountainFog;
-    
-    scene.add(mountains);
-    scene.add(wireframeMountains);
-    
-    // Add a second, darker mountain range in the far distance
-    const farMountainGeometry = new THREE.PlaneGeometry(1600, 150, 80, 20);
-    const farMountainMaterial = new MeshStandardMaterial({
-        color: 0x550066,           // Dark purple
-        emissive: 0x220033,        // Slight glow
-        emissiveIntensity: 0.3,
-        wireframe: false,
-        flatShading: true
-    });
-    
-    // Displace vertices for the far mountains
-    const farPositionAttribute = farMountainGeometry.getAttribute('position');
-    const farPeakHeight = 35;      // Increased height
-    const farFrequency = 0.015;
-    
-    // Far mountain colors
-    const farColors = [];
-    const farColor1 = new THREE.Color(0x660066);  // Dark purple (top)
-    const farColor2 = new THREE.Color(0x330044);  // Darker purple (bottom)
-    
-    for (let i = 0; i < farPositionAttribute.count; i++) {
-        const x = farPositionAttribute.getX(i);
-        const y = farPositionAttribute.getY(i);
-        
-        // Simple displacement for distant mountains
-        let z = Math.sin(x * farFrequency) * farPeakHeight;
-        z += Math.sin(x * farFrequency * 0.6) * farPeakHeight * 0.6;
-        z += Math.random() * 4; // Add some randomness
-        
-        // Only raise vertices in the upper part
-        if (y > -60) {
-            farPositionAttribute.setZ(i, Math.max(0, z));
-        }
-        
-        // Add gradient color
-        const t = z / farPeakHeight;
-        const color = farColor1.clone().lerp(farColor2, 1 - t);
-        farColors.push(color.r, color.g, color.b);
-    }
-    
-    // Add colors to geometry
-    farMountainGeometry.setAttribute('color', new THREE.Float32BufferAttribute(farColors, 3));
-    farMountainMaterial.vertexColors = true;
-    
-    farMountainGeometry.computeVertexNormals();
-    
-    const farMountains = new THREE.Mesh(farMountainGeometry, farMountainMaterial);
-    farMountains.position.set(0, -35, -550);
-    farMountains.rotation.x = -Math.PI / 2.5;
-    scene.add(farMountains);
-    
-    // Add wireframe to far mountains too
-    const farWireframeMaterial = new MeshBasicMaterial({
-        color: 0x800080,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.4
-    });
-    
-    const farWireframeMountains = new THREE.Mesh(farMountainGeometry.clone(), farWireframeMaterial);
-    farWireframeMountains.position.set(0, -34.9, -549);
-    farWireframeMountains.rotation.x = -Math.PI / 2.5;
-    scene.add(farWireframeMountains);
-    
-    // Add a horizon glow effect - bright line at the horizon
-    const horizonGeometry = new THREE.PlaneGeometry(2000, 15);
-    const horizonMaterial = new THREE.MeshBasicMaterial({
-        color: 0x00ffff,
-        transparent: true,
-        opacity: 0.7
-    });
-    
-    const horizon = new THREE.Mesh(horizonGeometry, horizonMaterial);
-    horizon.position.set(0, -40, -500);
-    horizon.rotation.x = -Math.PI / 2;
-    scene.add(horizon);
-}
-
-function createTargetingSystem() {
-    // Create a targeting reticle
-    const reticleGeometry = new RingGeometry(1.8, 2, 32);
-    const reticleMaterial = new LineBasicMaterial({ 
-        color: 0xff00ff,
-        transparent: true,
-        opacity: 0.6
-    });
-    const reticle = new Mesh(reticleGeometry, reticleMaterial);
-    reticle.rotation.x = Math.PI / 2;
-    reticle.position.z = -10;
-    player.add(reticle);
-    
-    // Targeting lines
-    const lineGeometry = new BufferGeometry().setFromPoints([
-        new Vector3(0, 0, 0),
-        new Vector3(0, 0, -10)
-    ]);
-    const lineMaterial = new LineDashedMaterial({
-        color: 0x00ffff,
-        dashSize: 0.5,
-        gapSize: 0.3,
-        transparent: true,
-        opacity: 0.6
-    });
-    const line = new Line(lineGeometry, lineMaterial);
-    line.computeLineDistances();
-    player.add(line);
-}
-
-function setupSounds() {
-    // --- NEW SOUND DEFINITIONS (Replace placeholders with actual paths) ---
-    
-    // Music (Preload this one)
-    sounds.music = new Howl({
-        src: ['./Future Synthwave MIDI Kits - MIDI Klowd - 01 Future Synthwave MIDI Kits - Demo.mp3'],
-        loop: true,
-        volume: 0.6,
-        autoplay: false,
-        preload: true
-    });
-    
-    // Player Weapons (Load on demand)
-    sounds.laser_primary = new Howl({
-        src: ['./mixkit-cinematic-laser-gun-thunder-1287.wav'],
-        volume: 0.8
-    });
-    
-    sounds.laser_twin = new Howl({
-        src: ['./mixkit-laser-weapon-shot-1681.wav'],
-        volume: 0.8
-    });
-    
-    sounds.laser_plasma = new Howl({
-        src: ['./mixkit-sci-fi-laser-shots-2783.wav'],
-        volume: 1.0
-    });
-    
-    sounds.laser_rail = new Howl({
-        src: ['./569900__bigdino1995__explosion.wav'],
-        volume: 0.9
-    });
-    
-    sounds.missile = new Howl({
-        src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
-        volume: 0.8
-    });
-    
-    sounds.db_windup = new Howl({
-        src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
-        volume: 1.0
-    });
-    
-    sounds.deathBlossom = new Howl({
-        src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
-        volume: 1.0
-    });
-    
-    // Enemy Weapons (Need game logic to trigger these)
-    sounds.plasma_sputter = new Howl({
-        src: ['./mixkit-retro-video-game-bubble-laser-277.wav'],
-        volume: 1.0,
-        html5: true
-    });
-    sounds.directional_threat = new Howl({
-        src: ['./mixkit-sci-fi-battle-laser-shots-2783.wav'],
-        volume: 1.0,
-        html5: true
-    });
-
-    // Explosions
-    sounds.explosion_small = new Howl({
-        src: ['./569900__bigdino1995__explosion.wav'],
-        volume: 1.0,
-        html5: true
-    });
-    sounds.explosion_forge_split = new Howl({ // For Forge-Splitter enemy type later
-        src: ['./mixkit-shatter-shot-explosion-1693.wav'],
-        volume: 1.0,
-        html5: true
-    });
-    sounds.explosion_shield_node = new Howl({ // For Boss shield nodes later
-        src: ['./mixkit-dramatic-metal-explosion-impact-1687.wav'],
-        volume: 1.0,
-        html5: true
-    });
-    sounds.explosion_boss_core = new Howl({ // For Boss death later
-        src: ['./661799__robinhood76__11182-futuristing-collapse-explosion.wav'],
-        volume: 1.0,
-        html5: true
-    });
-
-    // UI & HUD
-    sounds.ui_lock_on = new Howl({
-        src: ['./mixkit-unlock-game-notification-253.wav'],
-        volume: 1.0,
-        html5: true
-    });
-    sounds.ui_beep = new Howl({
-        src: ['./mixkit-censorship-beep-1082.wav'],
-        volume: 1.0,
-        html5: true
-    });
-
-    // --- End NEW SOUND DEFINITIONS ---
-    Object.keys(sounds).forEach(key => {
-        sounds[key].on('loaderror', function(id, error) {
-            console.error(key + ' load error: ', error);
-        });
-        sounds[key].on('playerror', function(id, error) {
-            console.error(key + ' play error: ', error);
-        });
-    })
-}
-
-function initRadar() {
-    const radar = document.getElementById('radar');
-    // Already styled in CSS
-    document.getElementById('audioIndicator').style.backgroundColor = "rgba(0,255,255,0.3)";
-    
-    // Remove the unconditional test sound playback
-    // sounds.ui_lock_on.play(); // <-- REMOVE THIS LINE
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    
-    // Resize HUD canvas
-    const hudCanvas = document.getElementById('hud');
-    hudCanvas.width = window.innerWidth;
-    hudCanvas.height = window.innerHeight;
-}
-
-function onKeyDown(event) {
-    keysPressed[event.key.toLowerCase()] = true;
-    
-    // Use event.code to detect spacebar reliably
-    if (event.code === 'Space' || event.key === ' ') {
-        event.preventDefault(); // Prevent scrolling
-        attemptFire();
-    }
-    if (event.key.toLowerCase() === 'd' && dbReady) {
-        triggerDeathBlossom();
-    }
-    if (event.code === 'Digit1') { currentWeapon = WEAPONS.PULSE; lastShot = 0; updateWeaponLabel(); }
-    if (event.code === 'Digit2') { currentWeapon = WEAPONS.TWIN;  lastShot = 0; updateWeaponLabel(); }
-    if (event.code === 'Digit3') { currentWeapon = WEAPONS.PLASMA; lastShot = 0; updateWeaponLabel(); }
-    if (event.code === 'Digit4') { currentWeapon = WEAPONS.RAIL;  lastShot = 0; updateWeaponLabel(); }
-    if (event.code === 'KeyF') { fireMissileSalvo(); }
-}
-
-function onKeyUp(event) {
-    keysPressed[event.key.toLowerCase()] = false;
-}
-
-function attemptFire() {
-    const now = performance.now() * 0.001;
-    if (now - lastShot < cooldown[currentWeapon]) return;
-    lastShot = now;
-    console.log('attemptFire triggered with weapon:', currentWeapon);
-    switch (currentWeapon) {
-        case WEAPONS.PULSE:  fireLaserBolt(); break;
-        case WEAPONS.TWIN:   fireTwinBlasters(); break;
-        case WEAPONS.PLASMA: firePlasmaBall(); break;
-        case WEAPONS.RAIL:   fireRailSpike(); break;
-    }
-}
-
-function fireLaserBolt() {
-    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
-    const bulletStart = player.position.clone().addScaledVector(dir, 2.5);
-    const bulletGeometry = new THREE.CylinderGeometry(0.3, 0.3, 3.0, 16);
-    const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
-    bulletMesh.rotation.x = Math.PI / 2;
-    bulletMesh.position.copy(bulletStart);
-    
-    const laserLight = new THREE.PointLight(0xff0000, 18, 30);
-    bulletMesh.add(laserLight);
-    
-    scene.add(bulletMesh);
-    bullets.push({
-        pos: bulletMesh.position,
-        vel: dir.clone().multiplyScalar(260),
-        type: 'laser',
-        dmg: 2,
-        mesh: bulletMesh
-    });
-    
-    // Play laser sound effect
-    if (isSoundOn && sounds.laser_primary) {
-        sounds.laser_primary.play();
-    }
-}
-
-function fireTwinBlasters() {
-    console.log('Twin Blasters fired');
-    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(player.quaternion).normalize();
-    [-1, 1].forEach(s => {
-        const bulletStart = player.position.clone().addScaledVector(right, s * 1.2).addScaledVector(dir, 2);
-        // Much larger projectile
-        const bulletGeometry = new THREE.CylinderGeometry(0.15, 0.15, 1.5, 8); 
-        // Bright amber color
-        const bulletMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xffaa00,
+        gridMat = new ShaderMaterial({
+            uniforms: {
+                time: { value: 0.0 },
+                color1: { value: new THREE.Color(0x00ffff) }, // Cyan lines <<< UPDATED
+                color2: { value: new THREE.Color(0x110022) }, // Dark background (matches fog)
+                lineThickness: { value: 0.002 }, // thinner lines for denser grid
+                lineSpeed: { value: 0.4 },     // How fast lines move
+                fadeDistance: { value: 0.6 },    // How quickly lines fade (0-1, 1=no fade)
+                gridScale: { value: 100.0 }      // Increase density (10x smaller cells)
+            },
+            vertexShader: gridVertexShader,
+            fragmentShader: gridFragmentShader,
             transparent: true,
-            opacity: 0.9
+            depthWrite: false // Don't obscure things behind it
         });
+
+        const gridPlane = new Mesh(gridPlaneGeo, gridMat);
+        gridPlane.rotation.x = -Math.PI / 2; // Lay it flat
+        gridPlane.position.y = -5;         // Position below player
+        gridPlane.position.z = -150;       // Extend it into the distance
+        scene.add(gridPlane);
+    }
+
+    function createTargetingSystem() {
+        // Create a targeting reticle
+        const reticleGeometry = new RingGeometry(1.8, 2, 32);
+        const reticleMaterial = new LineBasicMaterial({ 
+            color: 0xff00ff,
+            transparent: true,
+            opacity: 0.6
+        });
+        const reticle = new Mesh(reticleGeometry, reticleMaterial);
+        reticle.rotation.x = Math.PI / 2;
+        reticle.position.z = -10;
+        player.add(reticle);
+        
+        // Targeting lines
+        const lineGeometry = new BufferGeometry().setFromPoints([
+            new Vector3(0, 0, 0),
+            new Vector3(0, 0, -10)
+        ]);
+        const lineMaterial = new LineDashedMaterial({
+            color: 0x00ffff,
+            dashSize: 0.5,
+            gapSize: 0.3,
+            transparent: true,
+            opacity: 0.6
+        });
+        const line = new Line(lineGeometry, lineMaterial);
+        line.computeLineDistances();
+        player.add(line);
+    }
+
+    function setupSounds() {
+        // --- NEW SOUND DEFINITIONS (Replace placeholders with actual paths) ---
+        
+        // Music (Preload this one)
+        sounds.music = new Howl({
+            src: ['./Future Synthwave MIDI Kits - MIDI Klowd - 01 Future Synthwave MIDI Kits - Demo.mp3'],
+            loop: true,
+            volume: 0.6,
+            autoplay: false,
+            preload: true
+        });
+        
+        // Player Weapons (Load on demand)
+        sounds.laser_primary = new Howl({
+            src: ['./mixkit-cinematic-laser-gun-thunder-1287.wav'],
+            volume: 0.8
+        });
+        
+        sounds.laser_twin = new Howl({
+            src: ['./mixkit-laser-weapon-shot-1681.wav'],
+            volume: 0.8
+        });
+        
+        sounds.laser_plasma = new Howl({
+                src: ['./mixkit-sci-fi-battle-laser-shots-2783.wav'],
+            volume: 1.0
+        });
+        
+        sounds.laser_rail = new Howl({
+            src: ['./569900__bigdino1995__explosion.wav'],
+            volume: 0.9
+        });
+        
+        sounds.missile = new Howl({
+            src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
+            volume: 0.8
+        });
+        
+        sounds.db_windup = new Howl({
+            src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
+            volume: 1.0
+        });
+        
+        sounds.deathBlossom = new Howl({
+            src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
+            volume: 1.0
+        });
+        
+        // Enemy Weapons (Need game logic to trigger these)
+        sounds.plasma_sputter = new Howl({
+            src: ['./mixkit-retro-video-game-bubble-laser-277.wav'],
+            volume: 1.0,
+            pool: 5
+        });
+        sounds.directional_threat = new Howl({
+            src: ['./mixkit-sci-fi-battle-laser-shots-2783.wav'],
+            volume: 1.0,
+            pool: 5
+        });
+
+        // Explosions
+        sounds.explosion_small = new Howl({
+            src: ['./569900__bigdino1995__explosion.wav'],
+            volume: 1.0,
+            pool: 8
+        });
+        sounds.explosion_forge_split = new Howl({ // For Forge-Splitter enemy type later
+            src: ['./mixkit-shatter-shot-explosion-1693.wav'],
+            volume: 1.0,
+            pool: 8
+        });
+        sounds.explosion_shield_node = new Howl({ // For Boss shield nodes later
+            src: ['./mixkit-dramatic-metal-explosion-impact-1687.wav'],
+            volume: 1.0,
+            pool: 8
+        });
+        sounds.explosion_boss_core = new Howl({ // For Boss death later
+            src: ['./661799__robinhood76__11182-futuristing-collapse-explosion.wav'],
+            volume: 1.0,
+            pool: 8
+        });
+
+        // UI & HUD
+        sounds.ui_lock_on = new Howl({
+            src: ['./mixkit-unlock-game-notification-253.wav'],
+            volume: 1.0,
+            pool: 4
+        });
+        sounds.ui_beep = new Howl({
+            src: ['./mixkit-censorship-beep-1082.wav'],
+            volume: 1.0,
+            pool: 4
+        });
+
+        // --- End NEW SOUND DEFINITIONS ---
+        Object.keys(sounds).forEach(key => {
+            sounds[key].on('loaderror', function(id, error) {
+                console.error(key + ' load error: ', error);
+            });
+            sounds[key].on('playerror', function(id, error) {
+                console.error(key + ' play error: ', error);
+            });
+        })
+    }
+
+    function initRadar() {
+        const radar = document.getElementById('radar');
+        // Already styled in CSS
+        document.getElementById('audioIndicator').style.backgroundColor = "rgba(0,255,255,0.3)";
+        
+        // Remove the unconditional test sound playback
+        // sounds.ui_lock_on.play(); // <-- REMOVE THIS LINE
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+            renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight); // keep composer in sync
+        
+        // Resize HUD canvas
+        const hudCanvas = document.getElementById('hud');
+        hudCanvas.width = window.innerWidth;
+        hudCanvas.height = window.innerHeight;
+    }
+
+    function onKeyDown(event) {
+        keysPressed[event.key.toLowerCase()] = true;
+        
+        // Use event.code to detect spacebar reliably
+        if (event.code === 'Space' || event.key === ' ') {
+            event.preventDefault(); // Prevent scrolling
+            attemptFire();
+        }
+        if (event.key.toLowerCase() === 'd' && dbReady) {
+            triggerDeathBlossom();
+        }
+        if (event.code === 'Digit1') { currentWeapon = WEAPONS.PULSE; lastShot = 0; updateWeaponLabel(); }
+        if (event.code === 'Digit2') { currentWeapon = WEAPONS.TWIN;  lastShot = 0; updateWeaponLabel(); }
+        if (event.code === 'Digit3') { currentWeapon = WEAPONS.PLASMA; lastShot = 0; updateWeaponLabel(); }
+        if (event.code === 'Digit4') { currentWeapon = WEAPONS.RAIL;  lastShot = 0; updateWeaponLabel(); }
+        if (event.code === 'KeyF') { fireMissileSalvo(); }
+    }
+
+    function onKeyUp(event) {
+        keysPressed[event.key.toLowerCase()] = false;
+    }
+
+    function attemptFire() {
+        const now = performance.now() * 0.001;
+        if (now - lastShot < cooldown[currentWeapon]) return;
+        if (weaponEnergy < ENERGY_COST[currentWeapon]) return; // not enough energy
+
+        weaponEnergy = Math.max(0, weaponEnergy - ENERGY_COST[currentWeapon]);
+        lastShot = now;
+        switch (currentWeapon) {
+            case WEAPONS.PULSE:  fireLaserBolt(); break;
+            case WEAPONS.TWIN:   fireTwinBlasters(); break;
+            case WEAPONS.PLASMA: firePlasmaBall(); break;
+            case WEAPONS.RAIL:   fireRailSpike(); break;
+        }
+    }
+
+    function fireLaserBolt() {
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
+        const bulletStart = player.position.clone().addScaledVector(dir, 2.5);
+        const bulletGeometry = new THREE.CylinderGeometry(0.3, 0.3, 3.0, 16);
+        const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
         bulletMesh.rotation.x = Math.PI / 2;
         bulletMesh.position.copy(bulletStart);
         
-        // Add point light for glow effect
-        const blasterLight = new THREE.PointLight(0xffaa00, 5, 10);
-        bulletMesh.add(blasterLight);
+        const laserLight = new THREE.PointLight(0xff0000, 18, 30);
+        bulletMesh.add(laserLight);
         
         scene.add(bulletMesh);
         bullets.push({
             pos: bulletMesh.position,
-            vel: dir.clone().addScaledVector(right, s * 0.05).normalize().multiplyScalar(260),
-            type: 'blaster',
+            vel: dir.clone().multiplyScalar(260),
+            type: 'laser',
             dmg: 2,
             mesh: bulletMesh
         });
-    });
-    
-    // Play the twin blaster sound
-    if (isSoundOn && sounds.laser_twin) {
-        sounds.laser_twin.play();
+        
+        // Play laser sound effect
+        if (isSoundOn && sounds.laser_primary) {
+            sounds.laser_primary.play();
+        }
     }
-}
 
-function firePlasmaBall() {
-    console.log('Plasma Ball fired');
-    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
-    const bulletStart = player.position.clone().addScaledVector(dir, 2.8);
-    const bulletGeometry = new THREE.SphereGeometry(0.4, 12, 12);
-    const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff });
-    const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
-    bulletMesh.position.copy(bulletStart);
-    scene.add(bulletMesh);
-    bullets.push({
-        pos: bulletMesh.position,
-        vel: dir.clone().multiplyScalar(130),
-        type: 'plasma',
-        dmg: 8,
-        splash: 3,
-        mesh: bulletMesh
-    });
-    
-    // Play the plasma sound
-    if (isSoundOn && sounds.laser_plasma) {
-        sounds.laser_plasma.play();
+    function fireTwinBlasters() {
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(player.quaternion).normalize();
+        [-1, 1].forEach(s => {
+            const bulletStart = player.position.clone().addScaledVector(right, s * 1.2).addScaledVector(dir, 2);
+            // Much larger projectile
+            const bulletGeometry = new THREE.CylinderGeometry(0.15, 0.15, 1.5, 8); 
+            // Bright amber color
+            const bulletMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffaa00,
+                transparent: true,
+                opacity: 0.9
+            });
+            const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
+            bulletMesh.rotation.x = Math.PI / 2;
+            bulletMesh.position.copy(bulletStart);
+            
+            // Add point light for glow effect
+            const blasterLight = new THREE.PointLight(0xffaa00, 5, 10);
+            bulletMesh.add(blasterLight);
+            
+            scene.add(bulletMesh);
+            bullets.push({
+                pos: bulletMesh.position,
+                vel: dir.clone().addScaledVector(right, s * 0.05).normalize().multiplyScalar(260),
+                type: 'blaster',
+                dmg: 2,
+                mesh: bulletMesh
+            });
+        });
+        
+        // Play the twin blaster sound
+        if (isSoundOn && sounds.laser_twin) {
+            sounds.laser_twin.play();
+        }
     }
-}
 
-function fireRailSpike() {
-    console.log('Rail Spike fired');
-    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion).normalize();
-    const ray = new THREE.Raycaster(player.position, dir);
-    const enemyMeshes = enemies.map(e => e.mesh || e);
-    const hits = ray.intersectObjects(enemyMeshes);
-    hits.forEach(hit => {
-        damageEnemy(hit.object.parent || hit.object, 16);
-    });
-    drawRailBeam(dir);
-    
-    // Play the rail spike sound
-    if (isSoundOn && sounds.laser_rail) {
-        sounds.laser_rail.play();
-    }
-}
-
-function fireMissileSalvo() {
-    if (!missileReady) return;
-    missileReady = false;
-    setTimeout(() => missileReady = true, 30000);
-    const targets = enemies.slice(0, 3);
-    targets.forEach(t => {
-        const bulletStart = player.position.clone();
-        const bulletGeometry = new THREE.SphereGeometry(0.2, 8, 8);
-        const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    function firePlasmaBall() {
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
+        const bulletStart = player.position.clone().addScaledVector(dir, 2.8);
+        const bulletGeometry = new THREE.SphereGeometry(0.4, 12, 12);
+        const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff });
         const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
         bulletMesh.position.copy(bulletStart);
         scene.add(bulletMesh);
         bullets.push({
             pos: bulletMesh.position,
-            vel: new THREE.Vector3(),
-            target: t,
-            type: 'missile',
-            dmg: 3,
+            vel: dir.clone().multiplyScalar(130),
+            type: 'plasma',
+            dmg: 8,
+            splash: 3,
             mesh: bulletMesh
         });
-    });
-    
-    // Play missile sound
-    if (isSoundOn && sounds.missile) {
-        sounds.missile.play();
-    }
-}
-
-function drawRailBeam(dir) {
-    // Create a bright, thick beam
-    const material = new THREE.LineBasicMaterial({ 
-        color: 0x00ffff, // Cyan color for visibility
-        linewidth: 10 // Note: linewidth may not work in WebGL, but we're adding other effects
-    });
-    
-    const points = [];
-    points.push(player.position.clone());
-    points.push(player.position.clone().add(dir.clone().multiplyScalar(200))); // Longer beam
-    
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const line = new THREE.Line(geometry, material);
-    
-    // Add glow effect with a cylinder
-    const glowGeometry = new THREE.CylinderGeometry(0.2, 0.2, 200, 16);
-    const glowMaterial = new THREE.MeshBasicMaterial({
-        color: 0x00ffff,
-        transparent: true,
-        opacity: 0.3
-    });
-    const glowCylinder = new THREE.Mesh(glowGeometry, glowMaterial);
-    glowCylinder.position.copy(player.position.clone().add(dir.clone().multiplyScalar(100)));
-    glowCylinder.lookAt(player.position.clone().add(dir.clone().multiplyScalar(200)));
-    glowCylinder.rotation.x = Math.PI / 2;
-    
-    scene.add(line);
-    scene.add(glowCylinder);
-    
-    // Flash effect at player position
-    const flashGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-    const flashMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.8
-    });
-    const flash = new THREE.Mesh(flashGeometry, flashMaterial);
-    flash.position.copy(player.position);
-    scene.add(flash);
-    
-    // Remove effects after a duration (increased from 50ms to 150ms)
-    setTimeout(() => { 
-        scene.remove(line); 
-        scene.remove(glowCylinder);
-        scene.remove(flash);
-    }, 150);
-}
-
-function updateWeaponLabel() {
-    const labels = ['Pulse Laser', 'Twin Blasters', 'Plasma Burst', 'Rail Spike'];
-    document.getElementById('weaponLbl').textContent = labels[currentWeapon];
-}
-
-function damageEnemy(enemy, dmg) {
-    enemy.userData.hp -= dmg;
-    if (enemy.userData.hp <= 0) {
-        score += enemy.userData.scoreValue || 100;
-        createExplosion(enemy.position, enemy);
-        scene.remove(enemy);
-        enemies.splice(enemies.indexOf(enemy), 1);
-        updateHUD();
-    }
-}
-
-function tronWireClone(mesh) {
-  // If mesh has no geometry, create a basic one
-  if (!mesh.geometry) {
-    console.warn("Mesh has no geometry, creating fallback");
-    const g = new THREE.BoxGeometry(1, 1, 1);
-    const mat = new THREE.LineBasicMaterial({
-      color: 0x00eaff, linewidth: 1, transparent: true
-    });
-    const wire = new THREE.LineSegments(g, mat);
-    wire.position.copy(mesh.position);
-    scene.add(wire);
-    
-    // Animate shrink & fade
-    let t = 0;
-    const dur = 0.4;
-    function update(dt) {
-      t += dt;
-      const k = 1 - t/dur;
-      wire.scale.setScalar(k);
-      wire.material.opacity = k;
-      if (t >= dur) {
-        scene.remove(wire);
-        ticker.delete(update);
-      }
-    }
-    ticker.add(update);
-    return;
-  }
-  
-  // Use the mesh's geometry for the wireframe
-  try {
-    const g = new THREE.WireframeGeometry(mesh.geometry);
-    const mat = new THREE.LineBasicMaterial({
-      color: 0x00eaff, linewidth: 1, transparent: true
-    });
-    const wire = new THREE.LineSegments(g, mat);
-    wire.position.copy(mesh.position);
-    wire.quaternion.copy(mesh.quaternion);
-    scene.add(wire);
-    
-    // Animate shrink & fade
-    let t = 0;
-    const dur = 0.4;
-    function update(dt) {
-      t += dt;
-      const k = 1 - t/dur;
-      wire.scale.setScalar(k);
-      wire.material.opacity = k;
-      if (t >= dur) {
-        scene.remove(wire);
-        ticker.delete(update);
-      }
-    }
-    ticker.add(update);
-  } catch (e) {
-    console.error("Error creating wireframe", e);
-  }
-}
-
-function tronSparks(pos) {
-  const g = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-  const mat = new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true});
-  for (let i = 0; i < 80; i++) {
-    const cube = new THREE.Mesh(g, mat.clone());
-    cube.position.copy(pos);
-    const dir = new THREE.Vector3(
-      Math.random() - 0.5,
-      Math.random() - 0.5,
-      Math.random() - 0.5
-    ).normalize();
-    cube.userData.vel = dir.multiplyScalar(20 + Math.random() * 15);
-    scene.add(cube);
-    
-    function update(dt) {
-      cube.position.addScaledVector(cube.userData.vel, dt);
-      cube.material.opacity -= dt * 2.5;
-      if (cube.material.opacity <= 0) {
-        scene.remove(cube);
-        ticker.delete(update);
-      }
-    }
-    ticker.add(update);
-  }
-}
-
-function tronFlash() {
-  flash.style.opacity = 1;
-  setTimeout(() => flash.style.opacity = 0, 60);
-}
-
-// Combined function for the full explosion effect
-function createExplosion(position, mesh) {
-    // Play appropriate explosion sound
-    if (isSoundOn) {
-        if (mesh && mesh.userData.type === 'commandCarrier') {
-            sounds.explosion_boss_core.play();
-        } else if (mesh && mesh.userData.type === 'forgeHauler') {
-            sounds.explosion_forge_split.play();
-        } else {
-            sounds.explosion_small.play();
+        
+        // Play the plasma sound
+        if (isSoundOn && sounds.laser_plasma) {
+            sounds.laser_plasma.play();
         }
     }
-    
-    // Create expanding ring effect
-    const ringGeometry = new THREE.RingGeometry(0, 1, 32);
-    const ringMaterial = new THREE.MeshBasicMaterial({
-        color: 0xff00ff,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.8
-    });
-    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-    ring.position.copy(position);
-    scene.add(ring);
-    
-    // Animate ring
-    let time = 0;
-    const duration = 0.5;
-    function updateRing(dt) {
-        time += dt;
-        const scale = time / duration * 5;
-        ring.scale.setScalar(scale);
-        ring.material.opacity = 1 - (time / duration);
-        if (time >= duration) {
-            scene.remove(ring);
-            ticker.delete(updateRing);
-        }
-    }
-    ticker.add(updateRing);
-    
-    // Create particle effect
-    const particleCount = 50;
-    const particles = new THREE.Group();
-    for (let i = 0; i < particleCount; i++) {
-        const particle = new THREE.Mesh(
-            new THREE.SphereGeometry(0.1, 4, 4),
-            new THREE.MeshBasicMaterial({
-                color: 0xff00ff,
-                transparent: true
-            })
-        );
-        const velocity = new THREE.Vector3(
-            Math.random() - 0.5,
-            Math.random() - 0.5,
-            Math.random() - 0.5
-        ).normalize().multiplyScalar(Math.random() * 10);
-        particle.userData.velocity = velocity;
-        particle.position.copy(position);
-        particles.add(particle);
-    }
-    scene.add(particles);
-    
-    // Animate particles
-    time = 0;
-    function updateParticles(dt) {
-        time += dt;
-        particles.children.forEach(particle => {
-            particle.position.add(particle.userData.velocity.clone().multiplyScalar(dt));
-            particle.material.opacity = 1 - (time / duration);
+
+    function fireRailSpike() {
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion).normalize();
+        const ray = new THREE.Raycaster(player.position, dir);
+        const enemyMeshes = enemies.map(e => e.mesh || e);
+        const hits = ray.intersectObjects(enemyMeshes);
+        hits.forEach(hit => {
+            damageEnemy(hit.object.parent || hit.object, 16);
         });
-        if (time >= duration) {
-            scene.remove(particles);
-            ticker.delete(updateParticles);
+        drawRailBeam(dir);
+        
+        // Play the rail spike sound
+        if (isSoundOn && sounds.laser_rail) {
+            sounds.laser_rail.play();
         }
     }
-    ticker.add(updateParticles);
-    
-    // Wireframe effect from existing code
-    if (mesh) {
-        tronWireClone(mesh);
-    }
-    
-    // Flash effect
-    tronFlash();
-}
 
-// Replace the animate function with gameLoop
-function gameLoop() {
-    // Only process the animation if the game is active
-    if (!gameActive) return;
+    function fireMissileSalvo() {
+        if (!missileReady) return;
+        missileReady = false;
+        setTimeout(() => missileReady = true, 30000);
+        const targets = enemies.slice(0, 3);
+        targets.forEach(t => {
+            const bulletStart = player.position.clone();
+            const bulletGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+            const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            const bulletMesh = new THREE.Mesh(bulletGeometry, bulletMaterial);
+            bulletMesh.position.copy(bulletStart);
+            scene.add(bulletMesh);
+            bullets.push({
+                pos: bulletMesh.position,
+                vel: new THREE.Vector3(),
+                target: t,
+                type: 'missile',
+                dmg: 3,
+                mesh: bulletMesh
+            });
+        });
+        
+        // Play missile sound
+        if (isSoundOn && sounds.missile) {
+            sounds.missile.play();
+        }
+    }
+
+    function drawRailBeam(dir) {
+        // Create a bright, thick beam
+        const material = new THREE.LineBasicMaterial({ 
+            color: 0x00ffff, // Cyan color for visibility
+            linewidth: 10 // Note: linewidth may not work in WebGL, but we're adding other effects
+        });
+        
+        const points = [];
+        points.push(player.position.clone());
+        points.push(player.position.clone().add(dir.clone().multiplyScalar(200))); // Longer beam
+        
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, material);
+        
+        // Add glow effect with a cylinder
+        const glowGeometry = new THREE.CylinderGeometry(0.2, 0.2, 200, 16);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.3
+        });
+        const glowCylinder = new THREE.Mesh(glowGeometry, glowMaterial);
+        glowCylinder.position.copy(player.position.clone().add(dir.clone().multiplyScalar(100)));
+        glowCylinder.lookAt(player.position.clone().add(dir.clone().multiplyScalar(200)));
+        glowCylinder.rotation.x = Math.PI / 2;
+        
+        scene.add(line);
+        scene.add(glowCylinder);
+        
+        // Flash effect at player position
+        const flashGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+        const flashMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.8
+        });
+        const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+        flash.position.copy(player.position);
+        scene.add(flash);
+        
+        // Remove effects after a duration (increased from 50ms to 150ms)
+        setTimeout(() => { 
+            scene.remove(line); 
+            scene.remove(glowCylinder);
+            scene.remove(flash);
+        }, 150);
+    }
+
+    function updateWeaponLabel() {
+        const labels = ['Pulse Laser', 'Twin Blasters', 'Plasma Burst', 'Rail Spike'];
+        document.getElementById('weaponLbl').textContent = labels[currentWeapon];
+    }
+
+    function damageEnemy(enemy, dmg) {
+        enemy.userData.hp -= dmg;
+        if (enemy.userData.hp <= 0) {
+            score += enemy.userData.scoreValue || 100;
+            createExplosion(enemy.position, enemy);
+            scene.remove(enemy);
+            enemies.splice(enemies.indexOf(enemy), 1);
+            updateHUD();
+        }
+    }
+
+    function tronWireClone(mesh) {
+      // If mesh has no geometry, create a basic one
+      if (!mesh.geometry) {
+        console.warn("Mesh has no geometry, creating fallback");
+        const g = new THREE.BoxGeometry(1, 1, 1);
+        const mat = new THREE.LineBasicMaterial({
+          color: 0x00eaff, linewidth: 1, transparent: true
+        });
+        const wire = new THREE.LineSegments(g, mat);
+        wire.position.copy(mesh.position);
+        scene.add(wire);
+        
+        // Animate shrink & fade
+        let t = 0;
+        const dur = 0.4;
+        function update(dt) {
+          t += dt;
+          const k = 1 - t/dur;
+          wire.scale.setScalar(k);
+          wire.material.opacity = k;
+          if (t >= dur) {
+            scene.remove(wire);
+            ticker.delete(update);
+          }
+        }
+        ticker.add(update);
+        return;
+      }
+      
+      // Use the mesh's geometry for the wireframe
+      try {
+        const g = new THREE.WireframeGeometry(mesh.geometry);
+        const mat = new THREE.LineBasicMaterial({
+          color: 0x00eaff, linewidth: 1, transparent: true
+        });
+        const wire = new THREE.LineSegments(g, mat);
+        wire.position.copy(mesh.position);
+        wire.quaternion.copy(mesh.quaternion);
+        scene.add(wire);
+        
+        // Animate shrink & fade
+        let t = 0;
+        const dur = 0.4;
+        function update(dt) {
+          t += dt;
+          const k = 1 - t/dur;
+          wire.scale.setScalar(k);
+          wire.material.opacity = k;
+          if (t >= dur) {
+            scene.remove(wire);
+            ticker.delete(update);
+          }
+        }
+        ticker.add(update);
+      } catch (e) {
+        console.error("Error creating wireframe", e);
+      }
+    }
+
+    function tronSparks(pos) {
+      const g = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+      const mat = new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true});
+      for (let i = 0; i < 80; i++) {
+        const cube = new THREE.Mesh(g, mat.clone());
+        cube.position.copy(pos);
+        const dir = new THREE.Vector3(
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+          Math.random() - 0.5
+        ).normalize();
+        cube.userData.vel = dir.multiplyScalar(20 + Math.random() * 15);
+        scene.add(cube);
+        
+        function update(dt) {
+          cube.position.addScaledVector(cube.userData.vel, dt);
+          cube.material.opacity -= dt * 2.5;
+          if (cube.material.opacity <= 0) {
+            scene.remove(cube);
+            ticker.delete(update);
+          }
+        }
+        ticker.add(update);
+      }
+    }
+
+    function tronFlash() {
+      flash.style.opacity = 1;
+      setTimeout(() => flash.style.opacity = 0, 60);
+    }
+
+    // Combined function for the full explosion effect
+    function createExplosion(position, mesh) {
+        // Play appropriate explosion sound
+        if (isSoundOn) {
+            if (mesh && mesh.userData.type === 'commandCarrier') {
+                sounds.explosion_boss_core.play();
+            } else if (mesh && mesh.userData.type === 'forgeHauler') {
+                sounds.explosion_forge_split.play();
+            } else {
+                sounds.explosion_small.play();
+            }
+        }
+        
+        // Create expanding ring effect
+        const ringGeometry = new THREE.RingGeometry(0, 1, 32);
+        const ringMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff00ff,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.8
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.position.copy(position);
+        scene.add(ring);
+        
+        // Animate ring
+        let time = 0;
+        const duration = 0.5;
+        function updateRing(dt) {
+            time += dt;
+            const scale = time / duration * 5;
+            ring.scale.setScalar(scale);
+            ring.material.opacity = 1 - (time / duration);
+            if (time >= duration) {
+                scene.remove(ring);
+                ticker.delete(updateRing);
+            }
+        }
+        ticker.add(updateRing);
+        
+        // Create particle effect
+        const particleCount = 50;
+        const particles = new THREE.Group();
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(
+                new THREE.SphereGeometry(0.1, 4, 4),
+                new THREE.MeshBasicMaterial({
+                    color: 0xff00ff,
+                    transparent: true
+                })
+            );
+            const velocity = new THREE.Vector3(
+                Math.random() - 0.5,
+                Math.random() - 0.5,
+                Math.random() - 0.5
+            ).normalize().multiplyScalar(Math.random() * 10);
+            particle.userData.velocity = velocity;
+            particle.position.copy(position);
+            particles.add(particle);
+        }
+        scene.add(particles);
+        
+        // Animate particles
+        time = 0;
+        function updateParticles(dt) {
+            time += dt;
+            particles.children.forEach(particle => {
+                particle.position.add(particle.userData.velocity.clone().multiplyScalar(dt));
+                particle.material.opacity = 1 - (time / duration);
+            });
+            if (time >= duration) {
+                scene.remove(particles);
+                ticker.delete(updateParticles);
+            }
+        }
+        ticker.add(updateParticles);
+        
+        // Wireframe effect from existing code
+        if (mesh) {
+            tronWireClone(mesh);
+        }
+        
+        // Flash effect
+        tronFlash();
+    }
+
+        // --- Main Game Loop ---
+    function gameLoop() {
+        // Check game state FIRST
+        if (!gameActive()) { // Calls function defined above
+            composer.render(); // Render final frame
+            return; // Stop the loop
+        }
     
     requestAnimationFrame(gameLoop);
     const delta = clock.getDelta();
@@ -1082,29 +1543,25 @@ function gameLoop() {
     
     // Player Movement
     const moveSpeed = playerSpeed * 60 * delta;
-    if (keysPressed['arrowleft'] || keysPressed['a']) {
-        player.position.x -= moveSpeed;
-        playerShip.rotation.z = MathUtils.lerp(playerShip.rotation.z, 0.2, 0.1);
-    } else if (keysPressed['arrowright'] || keysPressed['d']) {
-        player.position.x += moveSpeed;
-        playerShip.rotation.z = MathUtils.lerp(playerShip.rotation.z, -0.2, 0.1);
-    } else {
-        playerShip.rotation.z = MathUtils.lerp(playerShip.rotation.z, 0, 0.1);
-    }
-    
-    if (keysPressed['arrowup'] || keysPressed['w']) {
-        player.position.y += moveSpeed;
-        playerShip.rotation.x = MathUtils.lerp(playerShip.rotation.x, -0.1, 0.1);
-    } else if (keysPressed['arrowdown'] || keysPressed['s']) {
-        player.position.y -= moveSpeed;
-        playerShip.rotation.x = MathUtils.lerp(playerShip.rotation.x, 0.1, 0.1);
-    } else {
-        playerShip.rotation.x = MathUtils.lerp(playerShip.rotation.x, 0, 0.1);
-    }
-    
-    // Clamp player position - enforce ground level
-    player.position.x = Math.max(-20, Math.min(20, player.position.x));
-    player.position.y = Math.max(-5, Math.min(10, player.position.y)); // Lower minimum Y to -5
+        
+        // ----------------- Keyboard OR Tilt Movement -----------------
+        let moveX = 0, moveY = 0;
+        if (keysPressed['arrowleft'] || keysPressed['a']) moveX -= 1;
+        if (keysPressed['arrowright'] || keysPressed['d']) moveX += 1;
+        if (keysPressed['arrowup'] || keysPressed['w']) moveY += 1;
+        if (keysPressed['arrowdown'] || keysPressed['s']) moveY -= 1;
+
+        // If no keyboard input, fall back to tilt values
+        if (moveX === 0) moveX = tiltX;
+        if (moveY === 0) moveY = tiltY;
+
+        player.position.x += moveX * moveSpeed;
+        player.position.y += moveY * moveSpeed;
+
+        // Add subtle banking based on movement (makes tilt feel natural)
+        playerShip.rotation.z = THREE.MathUtils.lerp(playerShip.rotation.z, -moveX * 0.3, 0.1);
+        playerShip.rotation.x = THREE.MathUtils.lerp(playerShip.rotation.x, moveY * -0.15, 0.1);
+        // ------------------------------------------------------------------
     
     // Roll control using Q/E keys
     const ROLL_RATE = 1.0; // radians per second, adjust as needed
@@ -1197,8 +1654,8 @@ function gameLoop() {
     // Update the target marker for the closest enemy
     updateTargetMarker(closestEnemy);
     
-    // Update HUD
-    updateHUD();
+    // Update HUD - Now using canvas drawing
+    updateHUDGraphics(hudContext, renderer.domElement.width, renderer.domElement.height, player, enemies, playerShield);
     
     // Update camera follow for full 6‑DoF effect
     const camOffset = new THREE.Vector3(0, 2, 12).applyQuaternion(playerShip.quaternion);
@@ -1212,7 +1669,10 @@ function gameLoop() {
         playerShield = Math.min(100, playerShield + SHIELD_REGEN_RATE * delta);
         updateShieldBar();
     }
-    
+
+    // Weapon energy recharge
+    weaponEnergy = Math.min(MAX_ENERGY, weaponEnergy + ENERGY_RECHARGE_RATE * delta);
+
     // Update enemy formations
     updateEnemyFormations(delta);
     
@@ -1221,385 +1681,716 @@ function gameLoop() {
         spawnEnemyFormation();
     }
     
-    renderer.render(scene, camera);
+        // Replace with composer
+        composer.render();
 }
 
-function spawnEnemy() {
-    const enemyType = selectEnemyType();
-    let enemy;
-    if (enemyType === 'miniGunstar') {
-        enemy = createMiniGunstar();
-        enemy.userData = { type: 'miniGunstar', hp: 1, scoreValue: 100 };
-    } else if (enemyType === 'forgeHauler') {
-        enemy = createForgeHauler();
-        enemy.userData = { type: 'forgeHauler', hp: 3, scoreValue: 300 };
-    } else if (enemyType === 'droneSwarm') {
-        enemy = createDroneSwarm();
-        enemy.userData = { type: 'droneSwarm', hp: 1, scoreValue: 150 };
-    } else if (enemyType === 'commandCarrier') {
-        enemy = createCommandCarrier();
-        enemy.userData = { type: 'commandCarrier', hp: 10, scoreValue: 1000 };
-    }
-    // Random position ahead of player
-    enemy.position.set(
-        MathUtils.randFloatSpread(30),
-        MathUtils.randFloatSpread(15),
-        -80 - Math.random() * 40
-    );
-    enemies.push(enemy);
-    scene.add(enemy);
-    updateTargetMarker(enemy);
-}
-
-function selectEnemyType() {
-    if (level < 3) {
-        return 'miniGunstar';
-    } else if (level < 5) {
-        const types = ['miniGunstar', 'droneSwarm', 'forgeHauler'];
-        return types[Math.floor(Math.random() * types.length)];
-    } else {
-        const types = ['miniGunstar', 'droneSwarm', 'forgeHauler', 'commandCarrier'];
-        return types[Math.floor(Math.random() * types.length)];
-    }
-}
-
-function createMiniGunstar() {
-    // Ko-Dan Fighter (Mini Gunstar): low-poly cone as placeholder
-    const geometry = new ConeGeometry(0.7, 2, 8);
-    const material = new MeshStandardMaterial({ color: 0xaaaaaa, wireframe: true });
-    return new Mesh(geometry, material);
-}
-
-function createForgeHauler() {
-    // Forge Hauler: Industrial orange torus with cargo pods
-    const group = new Group();
-    const torus = new Mesh(new TorusGeometry(1, 0.3, 8, 16), new MeshStandardMaterial({ color: 0xff6600, wireframe: true }));
-    group.add(torus);
-    // Add 4 small cargo pods as cubes around the torus
-    const podGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-    const podMaterial = new MeshStandardMaterial({ color: 0xffaa00, wireframe: true });
-    const offsets = [ [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0] ];
-    offsets.forEach(offset => {
-        const pod = new Mesh(podGeometry, podMaterial);
-        pod.position.set(offset[0] * 1.2, offset[1] * 1.2, 0);
-        group.add(pod);
-    });
-    return group;
-}
-
-function createDroneSwarm() {
-    // Drone Swarm: Group of 8 tiny Gunstar drones
-    const group = new Group();
-    for (let i = 0; i < 8; i++) {
-        const drone = new Mesh(new ConeGeometry(0.3, 1, 8), new MeshStandardMaterial({ color: 0x00ff00, wireframe: true }));
-        const angle = (i / 8) * Math.PI * 2;
-        drone.position.set(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, 0);
-        group.add(drone);
-    }
-    return group;
-}
-
-function createCommandCarrier() {
-    // Command Carrier (Boss): Cyan torus hull with shield nodes and a turret
-    const group = new Group();
-    const hull = new Mesh(new TorusGeometry(1.5, 0.4, 16, 32), new MeshStandardMaterial({ color: 0x00ffff, wireframe: true }));
-    group.add(hull);
-    for (let i = 0; i < 4; i++) {
-        const shield = new Mesh(new TorusGeometry(0.4, 0.1, 8, 16), new MeshStandardMaterial({ color: 0x00ffff, emissive: 0x003333, wireframe: true }));
-        const angle = (i / 4) * Math.PI * 2;
-        shield.position.set(Math.cos(angle) * 2, Math.sin(angle) * 2, 0);
-        group.add(shield);
-    }
-    // Add a turret (Mini Gunstar) on the top
-    const turret = createMiniGunstar();
-    turret.position.set(0, 0, 1);
-    turret.userData.isTurret = true;
-    group.add(turret);
-    return group;
-}
-
-function capsuleDistance2(A, B, radius, P) {
-    // Capsule collision helper as per revised roster
-    const AB = B.clone().sub(A);
-    const t = MathUtils.clamp(P.clone().sub(A).dot(AB) / AB.lengthSq(), 0, 1);
-    const closest = A.clone().addScaledVector(AB, t);
-    return closest.distanceToSquared(P) - radius * radius;
-}
-
-function updateHUD() {
-    document.getElementById('levelLbl').innerText = `LEVEL ${level}`;
-    document.getElementById('scoreLbl').innerText = `SCORE: ${score}`;
-}
-
-function updateTargetMarker(enemy) {
-    const marker = document.getElementById('targetMarker');
-    if (enemy) {
-        // Project enemy world position to screen coordinates
-        const screenPos = enemy.position.clone().project(camera);
-        
-        // Convert normalized device coordinates (-1 to +1) to screen pixels
-        const screenX = (screenPos.x + 1) / 2 * window.innerWidth;
-        const screenY = (-screenPos.y + 1) / 2 * window.innerHeight;
-        
-        // Update marker position and make it visible
-        marker.style.left = `${screenX}px`;
-        marker.style.top = `${screenY}px`;
-        marker.style.opacity = '1';
-        
-        // Update target info
-        const distance = player.position.distanceTo(enemy.position).toFixed(1);
-        document.getElementById('targetInfo').textContent = `TARGET: ${enemy.userData.type || 'Enemy'} | DIST: ${distance}m`;
-        
-        // Play lock-on sound ONLY if the target is NEW
-        if (enemy !== currentTargetedEnemy && isSoundOn && sounds.ui_lock_on) {
-            sounds.ui_lock_on.play();
-            // No need for lockOnSoundPlayed flag anymore
+    function spawnEnemy() {
+        const enemyType = selectEnemyType();
+        let enemy;
+        if (enemyType === 'miniGunstar') {
+            enemy = createMiniGunstar();
+            enemy.userData = { type: 'miniGunstar', hp: 1, scoreValue: 100 };
+        } else if (enemyType === 'forgeHauler') {
+            enemy = createForgeHauler();
+            enemy.userData = { type: 'forgeHauler', hp: 3, scoreValue: 300 };
+        } else if (enemyType === 'droneSwarm') {
+            enemy = createDroneSwarm();
+            enemy.userData = { type: 'droneSwarm', hp: 1, scoreValue: 150 };
+        } else if (enemyType === 'commandCarrier') {
+            enemy = createCommandCarrier();
+            enemy.userData = { type: 'commandCarrier', hp: 10, scoreValue: 1000 };
         }
-        
-    } else {
-        // Hide marker and clear target info if no enemy is targeted
-        marker.style.opacity = '0';
-        document.getElementById('targetInfo').textContent = '';
+        // Random position ahead of player
+        enemy.position.set(
+            MathUtils.randFloatSpread(30),
+            MathUtils.randFloatSpread(15),
+            -80 - Math.random() * 40
+        );
+        enemies.push(enemy);
+        scene.add(enemy);
+        updateTargetMarker(enemy);
     }
-    
-    // Update the currently tracked target for the next frame
-    currentTargetedEnemy = enemy;
-}
 
-function triggerDeathBlossom() {
-    if (!dbReady) return;
-    
-    dbReady = false;
-    document.getElementById('dbLbl').textContent = 'DEATH BLOSSOM CHARGING';
-    
-    // Play windup sound
-    if (isSoundOn && sounds.db_windup) {
-        sounds.db_windup.play();
-    }
-    
-    // Visual effect: Growing Wireframe Sphere
-    const sphereGeometry = new THREE.SphereGeometry(0.1, 16, 16); // Start small
-    const sphereMaterial = new THREE.MeshBasicMaterial({
-        color: 0xff00ff, // Magenta color
-        wireframe: true,
-        transparent: true,
-        opacity: 0.9
-    });
-    const dbSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    dbSphere.position.copy(player.position); // Start at player position
-    scene.add(dbSphere);
-    
-    // Flash effect
-    tronFlash();
-    
-    // Start the main effect after a short windup delay
-    setTimeout(() => {
-        // Play the main Death Blossom sound (can be different from windup)
-        if (isSoundOn && sounds.deathBlossom) {
-            sounds.deathBlossom.play(); // Use the specific Death Blossom sound
+    function selectEnemyType() {
+        if (level < 3) {
+            return 'miniGunstar';
+        } else if (level < 5) {
+            const types = ['miniGunstar', 'droneSwarm', 'forgeHauler'];
+            return types[Math.floor(Math.random() * types.length)];
+        } else {
+            const types = ['miniGunstar', 'droneSwarm', 'forgeHauler', 'commandCarrier'];
+            return types[Math.floor(Math.random() * types.length)];
         }
-        
-        // Animate the sphere expansion and fade
-        let time = 0;
-        const maxRadius = 25; // How large the sphere grows
-        const sphereAnimation = (dt) => {
-            time += dt;
-            const progress = time / (DB_DURATION / 1000); // Duration in seconds
+    }
+
+    function createMiniGunstar() {
+        // Simple triangular prism shape
+        const shape = new THREE.Shape();
+        const h = 1.0; // height
+        const w = 0.6; // base width
+        shape.moveTo(0, h / 2);
+        shape.lineTo(-w / 2, -h / 2);
+        shape.lineTo(w / 2, -h / 2);
+        shape.lineTo(0, h / 2);
+
+        const extrudeSettings = { depth: 0.4, bevelEnabled: false };
+        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        geometry.center();
+        geometry.rotateX(Math.PI / 2); // Orient horizontally
+
+        const material = new MeshStandardMaterial({
+            color: 0x00ffff, // Cyan
+            emissive: 0x00aaaa, // Darker cyan emissive
+            emissiveIntensity: 0.5,
+            metalness: 0.3,
+            roughness: 0.6,
+            flatShading: true
+        });
+        const gunstar = new Mesh(geometry, material);
+        gunstar.scale.setScalar(0.8); // Make them slightly smaller
+        return gunstar;
+    }
+
+    function createForgeHauler() {
+        // Forge Hauler: Industrial orange torus with cargo pods
+        const group = new Group();
+        const torus = new Mesh(new TorusGeometry(1, 0.3, 8, 16), new MeshStandardMaterial({ color: 0xff6600, wireframe: true }));
+        group.add(torus);
+        // Add 4 small cargo pods as cubes around the torus
+        const podGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const podMaterial = new MeshStandardMaterial({ color: 0xffaa00, wireframe: true });
+        const offsets = [ [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0] ];
+        offsets.forEach(offset => {
+            const pod = new Mesh(podGeometry, podMaterial);
+            pod.position.set(offset[0] * 1.2, offset[1] * 1.2, 0);
+            group.add(pod);
+        });
+        return group;
+    }
+
+    function createDroneSwarm() {
+        // Drone Swarm: Group of 8 tiny Gunstar drones
+        const group = new Group();
+        for (let i = 0; i < 8; i++) {
+            const drone = new Mesh(new ConeGeometry(0.3, 1, 8), new MeshStandardMaterial({ color: 0x00ff00, wireframe: true }));
+            const angle = (i / 8) * Math.PI * 2;
+            drone.position.set(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, 0);
+            group.add(drone);
+        }
+        return group;
+    }
+
+    function createCommandCarrier() {
+        // Command Carrier (Boss): Cyan torus hull with shield nodes and a turret
+        const group = new Group();
+        const hull = new Mesh(new TorusGeometry(1.5, 0.4, 16, 32), new MeshStandardMaterial({ color: 0x00ffff, wireframe: true }));
+        group.add(hull);
+        for (let i = 0; i < 4; i++) {
+            const shield = new Mesh(new TorusGeometry(0.4, 0.1, 8, 16), new MeshStandardMaterial({ color: 0x00ffff, emissive: 0x003333, wireframe: true }));
+            const angle = (i / 4) * Math.PI * 2;
+            shield.position.set(Math.cos(angle) * 2, Math.sin(angle) * 2, 0);
+            group.add(shield);
+        }
+        // Add a turret (Mini Gunstar) on the top
+        const turret = createMiniGunstar();
+        turret.position.set(0, 0, 1);
+        turret.userData.isTurret = true;
+        group.add(turret);
+        return group;
+    }
+
+    function capsuleDistance2(A, B, radius, P) {
+        // Capsule collision helper as per revised roster
+        const AB = B.clone().sub(A);
+        const t = MathUtils.clamp(P.clone().sub(A).dot(AB) / AB.lengthSq(), 0, 1);
+        const closest = A.clone().addScaledVector(AB, t);
+        return closest.distanceToSquared(P) - radius * radius;
+    }
+
+        // NEW: keep shield bar UI in sync with playerShield (0-100)
+        function updateShieldBar() {
+            const fill = document.querySelector('.shield-bar .fill');
+            if (!fill) return;
+            const pct = Math.max(0, Math.min(100, playerShield));
+            fill.style.width = pct + '%';
+            // Optional: colour-code
+            if (pct > 60) {
+                fill.style.background = '#0ff'; // cyan – healthy
+            } else if (pct > 30) {
+                fill.style.background = '#ff0'; // yellow – medium
+            } else {
+                fill.style.background = '#f00'; // red – low
+            }
+        }
+
+    function updateTargetMarker(enemy) {
+        const marker = document.getElementById('targetMarker');
+        if (enemy) {
+            // Project enemy world position to screen coordinates
+            const screenPos = enemy.position.clone().project(camera);
+            const screenX = (screenPos.x + 1) / 2 * window.innerWidth;
+            const screenY = (-screenPos.y + 1) / 2 * window.innerHeight;
+            marker.style.left = `${screenX}px`;
+            marker.style.top = `${screenY}px`;
+            marker.style.opacity = '1';
             
-            if (progress >= 1) {
-                scene.remove(dbSphere);
-                ticker.delete(sphereAnimation);
-                // Start cooldown after effect finishes
-                setTimeout(() => {
-                    dbReady = true;
-                    document.getElementById('dbLbl').textContent = 'DEATH BLOSSOM READY';
-                }, DB_COOLDOWN - DB_DURATION);
-                return;
+            // Update target info
+            const distance = player.position.distanceTo(enemy.position).toFixed(1);
+            document.getElementById('targetInfo').textContent = `TARGET: ${enemy.userData.type || 'Enemy'} | DIST: ${distance}m`;
+
+            // Further minimize lock-on sound by checking if the same enemy was already locked recently
+            const now = performance.now();
+            if (enemy && isSoundOn && sounds.ui_lock_on && enemy !== lastLockSoundEnemy && (now - lastLockSoundTime >= LOCK_SOUND_COOLDOWN)) {
+                sounds.ui_lock_on.play();
+                lastLockSoundTime = now;
+                lastLockSoundEnemy = enemy;
+            }
+        } else {
+            marker.style.opacity = '0';
+            document.getElementById('targetInfo').textContent = '';
+        }
+        currentTargetedEnemy = enemy;
+    }
+
+    function triggerDeathBlossom() {
+        if (!dbReady) return;
+        
+        dbReady = false;
+        document.getElementById('dbLbl').textContent = 'DEATH BLOSSOM CHARGING';
+        
+        // Play windup sound
+        if (isSoundOn && sounds.db_windup) {
+            sounds.db_windup.play();
+        }
+        
+        // Visual effect: Growing Wireframe Sphere
+        const sphereGeometry = new THREE.SphereGeometry(0.1, 16, 16); // Start small
+        const sphereMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff00ff, // Magenta color
+            wireframe: true,
+            transparent: true,
+            opacity: 0.9
+        });
+        const dbSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        dbSphere.position.copy(player.position); // Start at player position
+        scene.add(dbSphere);
+        
+        // Flash effect
+        tronFlash();
+        
+        // Start the main effect after a short windup delay
+        setTimeout(() => {
+            // Play the main Death Blossom sound (can be different from windup)
+            if (isSoundOn && sounds.deathBlossom) {
+                sounds.deathBlossom.play(); // Use the specific Death Blossom sound
             }
             
-            // Update sphere scale (lerp for smoother growth)
-            const currentRadius = MathUtils.lerp(0.1, maxRadius, progress);
-            dbSphere.scale.setScalar(currentRadius / 0.1); // Scale relative to initial radius
+            // Animate the sphere expansion and fade
+            let time = 0;
+            const maxRadius = 25; // How large the sphere grows
+            const sphereAnimation = (dt) => {
+                time += dt;
+                const progress = time / (DB_DURATION / 1000); // Duration in seconds
+                
+                if (progress >= 1) {
+                    scene.remove(dbSphere);
+                    ticker.delete(sphereAnimation);
+                    // Start cooldown after effect finishes
+                    setTimeout(() => {
+                        dbReady = true;
+                        document.getElementById('dbLbl').textContent = 'DEATH BLOSSOM READY';
+                    }, DB_COOLDOWN - DB_DURATION);
+                    return;
+                }
+                
+                // Update sphere scale (lerp for smoother growth)
+                const currentRadius = MathUtils.lerp(0.1, maxRadius, progress);
+                dbSphere.scale.setScalar(currentRadius / 0.1); // Scale relative to initial radius
+                
+                // Update opacity (fade out)
+                dbSphere.material.opacity = 0.9 * (1 - progress);
+                
+                // Keep sphere centered on player
+                dbSphere.position.copy(player.position);
+            };
+            ticker.add(sphereAnimation);
             
-            // Update opacity (fade out)
-            dbSphere.material.opacity = 0.9 * (1 - progress);
+            // --- Remove Projectile Firing Logic --- 
+            // let angle = 0;
+            // const projectilesPerBurst = 4; 
+            // const totalBursts = DB_PROJECTILES / projectilesPerBurst;
+            // const intervalId = setInterval(() => { ... }, DB_DURATION / totalBursts);
+            // setTimeout(() => { clearInterval(intervalId); ... }, DB_DURATION);
+            // --- End Removed Projectile Logic --- 
+
+        }, 500); // 500ms windup time
+    }
+
+    function spawnEnemyFormation() {
+        const formationType = Math.floor(Math.random() * 3);
+        let positions = [];
+        
+        switch (formationType) {
+            case FORMATION_TYPES.V:
+                positions = [
+                    [0, 0, 0],
+                    [-2, -2, 1],
+                    [2, -2, 1],
+                    [-4, -4, 2],
+                    [4, -4, 2]
+                ];
+                break;
+            case FORMATION_TYPES.WALL:
+                positions = [
+                    [-4, 0, 0],
+                    [-2, 0, 0],
+                    [0, 0, 0],
+                    [2, 0, 0],
+                    [4, 0, 0]
+                ];
+                break;
+            case FORMATION_TYPES.DIAMOND:
+                positions = [
+                    [0, 2, 0],
+                    [-2, 0, 0],
+                    [2, 0, 0],
+                    [0, -2, 0],
+                    [0, 0, 0]
+                ];
+                break;
+        }
+        
+        const formation = new THREE.Group();
+        positions.forEach(pos => {
+            const enemy = createEnemy(selectEnemyType());
+            enemy.position.set(pos[0], pos[1], pos[2]);
+            formation.add(enemy);
+        });
+        
+        formation.position.set(
+            MathUtils.randFloatSpread(20),
+            MathUtils.randFloatSpread(10),
+            -100
+        );
+        
+        scene.add(formation);
+            // enemyFormations.push({
+            //     group: formation,
+            //     behavior: Math.floor(Math.random() * 4),
+            //     time: 0
+            // });
+    }
+
+    function updateEnemyFormations(delta) {
+            // enemyFormations.forEach((formation, index) => {
+            //     formation.time += delta;
+            //     
+            //     switch (formation.behavior) {
+            //         case ENEMY_BEHAVIORS.STRAIGHT:
+            //             formation.group.position.z += enemySpeed * 60 * delta;
+            //             break;
+            //         case ENEMY_BEHAVIORS.SINE_WAVE:
+            //             formation.group.position.z += enemySpeed * 60 * delta;
+            //             formation.group.position.x = Math.sin(formation.time) * 10;
+            //             break;
+            //         case ENEMY_BEHAVIORS.CIRCLE_STRAFE:
+            //             const radius = 15;
+            //             const speed = 0.5;
+            //             formation.group.position.x = Math.cos(formation.time * speed) * radius;
+            //             formation.group.position.z = -50 + Math.sin(formation.time * speed) * radius;
+            //             break;
+            //         case ENEMY_BEHAVIORS.PURSUIT:
+            //             const toPlayer = player.position.clone().sub(formation.group.position);
+            //             toPlayer.normalize().multiplyScalar(enemySpeed * 40 * delta);
+            //             formation.group.position.add(toPlayer);
+            //             break;
+            //     }
+            //     
+            //     // Remove formation if past player
+            //     if (formation.group.position.z > camera.position.z + 10) {
+            //         scene.remove(formation.group);
+            //         enemyFormations.splice(index, 1);
+            //     }
+            // });
+    }
+
+    function createEnemy(enemyType) {
+        let enemy;
+        if (enemyType === 'miniGunstar') {
+            enemy = createMiniGunstar();
+            enemy.userData = { type: 'miniGunstar', hp: 1, scoreValue: 100 };
+        } else if (enemyType === 'forgeHauler') {
+            enemy = createForgeHauler();
+            enemy.userData = { type: 'forgeHauler', hp: 3, scoreValue: 300 };
+        } else if (enemyType === 'droneSwarm') {
+            enemy = createDroneSwarm();
+            enemy.userData = { type: 'droneSwarm', hp: 1, scoreValue: 150 };
+        } else if (enemyType === 'commandCarrier') {
+            enemy = createCommandCarrier();
+            enemy.userData = { type: 'commandCarrier', hp: 10, scoreValue: 1000 };
+        }
+        return enemy;
+    }
+
+        // --- Start the Game ---
+    init();
+    gameLoop();
+
+    // Add mobile touch controls
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        createMobileControls();
+    }
+
+    function createMobileControls() {
+        const mobileControls = document.createElement('div');
+        mobileControls.id = 'mobileControls';
+        mobileControls.style.cssText = `
+            position: fixed;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 1000;
+            pointer-events: none;
+        `;
+        
+        // D-Pad for movement
+        const dpad = document.createElement('div');
+        dpad.style.cssText = `
+            display: grid;
+            grid-template: 1fr 1fr 1fr / 1fr 1fr 1fr;
+            gap: 5px;
+            width: 150px;
+            height: 150px;
+            pointer-events: auto;
+        `;
+        
+        // Create D-Pad buttons
+        const createDPadButton = (gridArea, label, key) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.style.cssText = `
+                grid-area: ${gridArea};
+                background: rgba(0, 255, 255, 0.2);
+                border: 1px solid #0ff;
+                border-radius: 5px;
+                color: #0ff;
+                font-family: monospace;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                user-select: none;
+                -webkit-user-select: none;
+            `;
             
-            // Keep sphere centered on player
-            dbSphere.position.copy(player.position);
+            // Touch events for d-pad
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keysPressed[key] = true;
+            });
+            
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keysPressed[key] = false;
+            });
+            
+            return btn;
         };
-        ticker.add(sphereAnimation);
         
-        // --- Remove Projectile Firing Logic --- 
-        // let angle = 0;
-        // const projectilesPerBurst = 4; 
-        // const totalBursts = DB_PROJECTILES / projectilesPerBurst;
-        // const intervalId = setInterval(() => { ... }, DB_DURATION / totalBursts);
-        // setTimeout(() => { clearInterval(intervalId); ... }, DB_DURATION);
-        // --- End Removed Projectile Logic --- 
-
-    }, 500); // 500ms windup time
-}
-
-function gameOver() {
-    console.log('Game Over');
-    // Implement the logic for handling game over
-}
-
-function gameActive() {
-    return true; // Implement the logic to check if the game is active
-}
-
-// Add function to update shield bar visuals
-function updateShieldBar() {
-    const fill = document.querySelector('.shield-bar .fill');
-    fill.style.width = `${playerShield}%`;
-    
-    // Add color transitions based on shield level
-    if (playerShield > 60) {
-        fill.style.backgroundColor = '#0ff';
-    } else if (playerShield > 30) {
-        fill.style.backgroundColor = '#ff0';
-    } else {
-        fill.style.backgroundColor = '#f00';
-    }
-}
-
-// Update the damage handling to reset shield regeneration timer
-function damagePlayer(amount) {
-    playerShield -= amount;
-    lastDamageTime = performance.now();
-    updateShieldBar();
-    
-    // Visual feedback for shield hit
-    const shieldFlash = document.createElement('div');
-    Object.assign(shieldFlash.style, {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(255,0,255,0.2)',
-        pointerEvents: 'none',
-        transition: 'opacity 0.3s',
-        zIndex: 70
-    });
-    document.body.appendChild(shieldFlash);
-    
-    // Fade out and remove the flash effect
-    setTimeout(() => {
-        shieldFlash.style.opacity = 0;
-        setTimeout(() => shieldFlash.remove(), 300);
-    }, 50);
-}
-
-function spawnEnemyFormation() {
-    const formationType = Math.floor(Math.random() * 3);
-    let positions = [];
-    
-    switch (formationType) {
-        case FORMATION_TYPES.V:
-            positions = [
-                [0, 0, 0],
-                [-2, -2, 1],
-                [2, -2, 1],
-                [-4, -4, 2],
-                [4, -4, 2]
-            ];
-            break;
-        case FORMATION_TYPES.WALL:
-            positions = [
-                [-4, 0, 0],
-                [-2, 0, 0],
-                [0, 0, 0],
-                [2, 0, 0],
-                [4, 0, 0]
-            ];
-            break;
-        case FORMATION_TYPES.DIAMOND:
-            positions = [
-                [0, 2, 0],
-                [-2, 0, 0],
-                [2, 0, 0],
-                [0, -2, 0],
-                [0, 0, 0]
-            ];
-            break;
-    }
-    
-    const formation = new THREE.Group();
-    positions.forEach(pos => {
-        const enemy = createEnemy(selectEnemyType());
-        enemy.position.set(pos[0], pos[1], pos[2]);
-        formation.add(enemy);
-    });
-    
-    formation.position.set(
-        MathUtils.randFloatSpread(20),
-        MathUtils.randFloatSpread(10),
-        -100
-    );
-    
-    scene.add(formation);
-    enemyFormations.push({
-        group: formation,
-        behavior: Math.floor(Math.random() * 4),
-        time: 0
-    });
-}
-
-function updateEnemyFormations(delta) {
-    enemyFormations.forEach((formation, index) => {
-        formation.time += delta;
+        // Add D-Pad buttons in grid layout
+        const upBtn = createDPadButton('1 / 2 / 2 / 3', '▲', 'arrowup');
+        const leftBtn = createDPadButton('2 / 1 / 3 / 2', '◀', 'arrowleft');
+        const centerBtn = createDPadButton('2 / 2 / 3 / 3', '•', ' '); // Center button fires weapon
+        const rightBtn = createDPadButton('2 / 3 / 3 / 4', '▶', 'arrowright');
+        const downBtn = createDPadButton('3 / 2 / 4 / 3', '▼', 'arrowdown');
         
-        switch (formation.behavior) {
-            case ENEMY_BEHAVIORS.STRAIGHT:
-                formation.group.position.z += enemySpeed * 60 * delta;
-                break;
-            case ENEMY_BEHAVIORS.SINE_WAVE:
-                formation.group.position.z += enemySpeed * 60 * delta;
-                formation.group.position.x = Math.sin(formation.time) * 10;
-                break;
-            case ENEMY_BEHAVIORS.CIRCLE_STRAFE:
-                const radius = 15;
-                const speed = 0.5;
-                formation.group.position.x = Math.cos(formation.time * speed) * radius;
-                formation.group.position.z = -50 + Math.sin(formation.time * speed) * radius;
-                break;
-            case ENEMY_BEHAVIORS.PURSUIT:
-                const toPlayer = player.position.clone().sub(formation.group.position);
-                toPlayer.normalize().multiplyScalar(enemySpeed * 40 * delta);
-                formation.group.position.add(toPlayer);
-                break;
+        // Special button for center to handle fire
+        centerBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            attemptFire();
+        });
+        
+        // Add all buttons to D-Pad
+        dpad.appendChild(upBtn);
+        dpad.appendChild(leftBtn);
+        dpad.appendChild(centerBtn);
+        dpad.appendChild(rightBtn);
+        dpad.appendChild(downBtn);
+        
+        // Action buttons for weapons and special abilities
+        const actionButtons = document.createElement('div');
+        actionButtons.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        `;
+        
+        // Create action buttons
+        const createActionButton = (label, action, color = '#f0f') => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.style.cssText = `
+                width: 60px;
+                height: 60px;
+                background: rgba(255, 0, 255, 0.2);
+                border: 1px solid ${color};
+                border-radius: 50%;
+                color: ${color};
+                font-family: monospace;
+                font-weight: bold;
+                font-size: 12px;
+                cursor: pointer;
+                user-select: none;
+                -webkit-user-select: none;
+            `;
+            
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                action();
+            });
+            
+            return btn;
+        };
+        
+        // Create action buttons for special abilities
+        const dbButton = createActionButton('DB', () => triggerDeathBlossom());
+        const weaponButton = createActionButton('WPN', () => {
+            // Cycle weapons on touch
+            currentWeapon = (currentWeapon + 1) % Object.keys(WEAPONS).length;
+            updateWeaponLabel();
+        });
+        const missileButton = createActionButton('MSL', () => fireMissileSalvo(), '#0ff');
+        
+        // Add action buttons
+        actionButtons.appendChild(dbButton);
+        actionButtons.appendChild(weaponButton);
+        actionButtons.appendChild(missileButton);
+        
+        // Add all controls to the container
+        mobileControls.appendChild(dpad);
+        mobileControls.appendChild(actionButtons);
+        
+        // Add to document
+        document.body.appendChild(mobileControls);
+        
+        // Add mobile styling to improve visibility
+        const mobileStyle = document.createElement('style');
+        mobileStyle.textContent = `
+            @media (max-width: 768px) {
+                #mobileControls {
+                    bottom: 20px;
+                }
+                #dpad button {
+                    font-size: 18px;
+                }
+                #audioIndicator {
+                    bottom: 180px;
+                }
+            }
+        `;
+        document.head.appendChild(mobileStyle);
+    }
+
+        // Simple tilt-to-fly implementation for phones & tablets
+        // let tiltX = 0, tiltY = 0; // duplicate declaration commented out
+
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (e) => {
+                const maxTilt = 30; // degrees considered max input
+                // gamma = left/right, beta = front/back
+                if (e.gamma !== null && e.beta !== null) {
+                    tiltX = THREE.MathUtils.clamp(e.gamma, -maxTilt, maxTilt) / maxTilt;
+                    // offset beta so that phone held slightly vertical (45°) is neutral
+                    const betaOffset = e.beta - 45;
+                    tiltY = THREE.MathUtils.clamp(betaOffset, -maxTilt, maxTilt) / maxTilt;
+                }
+            });
         }
-        
-        // Remove formation if past player
-        if (formation.group.position.z > camera.position.z + 10) {
-            scene.remove(formation.group);
-            enemyFormations.splice(index, 1);
+
+        // NEW: Draw HUD Graphics onto Canvas
+        function updateHUDGraphics(ctx, canvasWidth, canvasHeight, playerObj, enemiesList, shieldValue) {
+            if (!ctx) return;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            // --- Radar --- 
+            const radarRadius = Math.min(canvasWidth, canvasHeight) * 0.15; // Radar size relative to screen
+            const radarCenterX = canvasWidth / 2;
+            const radarCenterY = canvasHeight - radarRadius - 40; // Positioned at bottom-center
+            const maxRadarRange = 150.0; // Max distance visible on radar
+            const radarColor = '#00ffff'; // Cyan
+            const radarBgColor = 'rgba(0, 50, 50, 0.15)';
+            const blipColor = '#ff00ff'; // Magenta blips
+            const playerBlipColor = '#ffffff'; // White for player
+
+            ctx.save(); // Save context state
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = radarColor;
+            ctx.fillStyle = radarBgColor;
+
+            // Draw background circle
+            ctx.beginPath();
+            ctx.arc(radarCenterX, radarCenterY, radarRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw concentric rings
+            for (let i = 1; i <= 3; i++) {
+                ctx.beginPath();
+                ctx.arc(radarCenterX, radarCenterY, radarRadius * (i / 3), 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Draw radial lines (crosshairs)
+            ctx.beginPath();
+            ctx.moveTo(radarCenterX - radarRadius, radarCenterY);
+            ctx.lineTo(radarCenterX + radarRadius, radarCenterY);
+            ctx.moveTo(radarCenterX, radarCenterY - radarRadius);
+            ctx.lineTo(radarCenterX, radarCenterY + radarRadius);
+            ctx.stroke();
+
+            // --- Draw Blips --- 
+            // Player blip (always at center)
+            ctx.fillStyle = playerBlipColor;
+            ctx.beginPath();
+            ctx.arc(radarCenterX, radarCenterY, 3, 0, Math.PI * 2); // Small dot for player
+            ctx.fill();
+
+            // Enemy blips
+            ctx.fillStyle = blipColor;
+            enemiesList.forEach(enemy => {
+                if (!playerObj) return;
+                const dx = enemy.position.x - playerObj.position.x;
+                const dz = enemy.position.z - playerObj.position.z; // Use Z for forward/back distance
+                const distance = Math.sqrt(dx * dx + dz * dz);
+
+                if (distance <= maxRadarRange) {
+                    // Calculate angle and normalized distance
+                    const angle = Math.atan2(dx, dz); // Angle relative to forward Z axis
+                    const normalizedDist = distance / maxRadarRange;
+
+                    // Calculate blip position on radar
+                    const blipX = radarCenterX + Math.sin(angle) * radarRadius * normalizedDist;
+                    const blipY = radarCenterY + Math.cos(angle) * radarRadius * normalizedDist;
+
+                    // Draw blip (e.g., small circle)
+                    ctx.beginPath();
+                    ctx.arc(blipX, blipY, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            ctx.restore(); // Restore context state (lineWidth, strokeStyle, etc.)
+
+            // ===== Layout constants (declare once) =====
+            const barX = 40; // Left margin for shield bar
+            const barTop = canvasHeight - radarRadius * 2 - 120;
+            const barHeight = radarRadius * 2;
+            const barWidth = 18;
+            const segments = 20; // segments for shield bar
+
+            const pctBarWidth = radarRadius * 2;
+            const pctBarHeight = 14;
+            const pctBarX = canvasWidth - pctBarWidth - 40;
+            const pctBarY = canvasHeight - pctBarHeight - 80;
+
+            // --- Dynamic Text Labels ---
+            ctx.fillStyle = '#00ffff';
+            ctx.font = '32px "VT323", monospace';
+
+            // Level & Score (bottom-left above shield bar)
+            ctx.fillText(`LEVEL ${level}`, 20, barTop - 32);
+            ctx.fillText(`SCORE ${score}`, 20, barTop - 12);
+
+            // Target info (bottom-center just above radar)
+            if(currentTargetedEnemy){
+                const dist = playerObj.position.distanceTo(currentTargetedEnemy.position).toFixed(1);
+                ctx.fillText(`TARGET: ${currentTargetedEnemy.userData.type || 'ENEMY'}  |  DIST: ${dist}m`, radarCenterX - 120, radarCenterY + radarRadius + 24);
+            }
+
+            // Death Blossom status (bottom-right below percentage bar)
+            const dbText = dbReady ? 'DEATH BLOSSOM READY' : 'DEATH BLOSSOM CHARGING';
+            ctx.fillStyle = dbReady ? '#00ffff' : '#ff00ff';
+            ctx.fillText(dbText, pctBarX, pctBarY + pctBarHeight + 24);
+
+            // Lock indicator under radar
+            ctx.fillStyle = '#ff00ff';
+            ctx.fillText('LOCK 01', radarCenterX - 28, radarCenterY + radarRadius + 42);
+
+            // FAST / SCAN toggles (bottom-right of radar)
+            const flashOn = Math.floor(performance.now()*0.002)%2===0;
+            ctx.fillStyle = flashOn ? '#00ffff' : '#003344';
+            ctx.fillText('-FAST', radarCenterX + radarRadius + 40, radarCenterY + 10);
+            ctx.fillText('-SCAN', radarCenterX + radarRadius + 40, radarCenterY + 28);
+
+            // Radar Sweep Arm
+            ctx.strokeStyle = 'rgba(0,255,255,0.3)';
+            ctx.lineWidth = 1;
+            const sweepAngle = (performance.now()*0.0005) % (Math.PI * 2);
+            ctx.beginPath();
+            ctx.moveTo(radarCenterX, radarCenterY);
+            ctx.lineTo(radarCenterX + Math.sin(sweepAngle)*radarRadius, radarCenterY + Math.cos(sweepAngle)*radarRadius);
+            ctx.stroke();
+
+            // --- Vertical Shield Bar --- (uses pre-declared barX/barTop...)
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#00ffff';
+            ctx.fillStyle = '#002233';
+            ctx.beginPath();
+            ctx.rect(barX, barTop, barWidth, barHeight);
+            ctx.stroke();
+            // Fill background
+            ctx.fillRect(barX, barTop, barWidth, barHeight);
+
+            // Draw filled segments based on shieldValue (0-100)
+            const filledSeg = Math.round((shieldValue/100)*segments);
+            const segHeight = barHeight/segments;
+            for(let i=0;i<segments;i++){
+                if(i<filledSeg){
+                    const t = i/segments;
+                    // Gradient: cyan to magenta as shield depletes
+                    const r = Math.floor(255 * t);
+                    const g = Math.floor(255 * (1-t));
+                    const b = 255;
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                }else{
+                    ctx.fillStyle = '#001022';
+                }
+                ctx.fillRect(barX+2, barTop + barHeight - (i+1)*segHeight +1, barWidth-4, segHeight-2);
+            }
+
+            // Shield label
+            ctx.font = '12px monospace';
+            ctx.fillStyle = '#00ffff';
+            ctx.fillText('SHIELD', barX-4, barTop + barHeight + 16);
+
+            // --- Percentage Bar (Right) --- (uses pre-declared pctBar...)
+            const pctValue = weaponEnergy; // dynamic weapon energy percentage
+            ctx.strokeStyle = '#ff00ff';
+            ctx.fillStyle = 'rgba(0,0,50,0.4)';
+            ctx.beginPath();
+            ctx.rect(pctBarX, pctBarY, pctBarWidth, pctBarHeight);
+            ctx.stroke();
+            ctx.fillRect(pctBarX, pctBarY, pctBarWidth, pctBarHeight);
+            ctx.fillStyle = '#ff00ff';
+            ctx.fillRect(pctBarX+2, pctBarY+2, (pctBarWidth-4)*pctValue/100, pctBarHeight-4);
+            ctx.font='16px monospace';
+            ctx.fillText(`${pctValue}%`, pctBarX + pctBarWidth + 10, pctBarY + pctBarHeight -2);
         }
-    });
-}
 
-function createEnemy(enemyType) {
-    let enemy;
-    if (enemyType === 'miniGunstar') {
-        enemy = createMiniGunstar();
-        enemy.userData = { type: 'miniGunstar', hp: 1, scoreValue: 100 };
-    } else if (enemyType === 'forgeHauler') {
-        enemy = createForgeHauler();
-        enemy.userData = { type: 'forgeHauler', hp: 3, scoreValue: 300 };
-    } else if (enemyType === 'droneSwarm') {
-        enemy = createDroneSwarm();
-        enemy.userData = { type: 'droneSwarm', hp: 1, scoreValue: 150 };
-    } else if (enemyType === 'commandCarrier') {
-        enemy = createCommandCarrier();
-        enemy.userData = { type: 'commandCarrier', hp: 10, scoreValue: 1000 };
-    }
-    return enemy;
-}
-
-init();
-gameLoop();
+        // Update HUD Text (Commented out - replaced by canvas drawing)
+        function updateHUD() {
+            // document.getElementById('levelLbl').innerText = `LEVEL ${level}`;
+            // document.getElementById('scoreLbl').innerText = `SCORE: ${score}`;
+        }
 </script>
 </body>
 </html>

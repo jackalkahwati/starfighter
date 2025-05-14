@@ -3,3 +3,13 @@ description:
 globs:
 alwaysApply: false
 ---
+# Starfighter 2025 Overview
+
+This project is a 3D Starfighter game with immersive graphics and gameplay.
+
+Key Files and Directories:
+- The main entry point is [index.html](mdc:index.html) which bootstraps the application.
+- The game logic resides in [src/main.js](mdc:src/main.js).
+- Assets such as models, textures, and sounds are located in the [assets/](mdc:assets/) directory.
+- Game configuration can be found in [config.json](mdc:config.json).
+- Setup and development instructions are provided in [README.md](mdc:README.md).
