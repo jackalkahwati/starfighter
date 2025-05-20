@@ -1,16 +1,28 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const fs = require("fs");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-let port = 5001;
+const port = process.env.PORT || 5001;
 
-// --- In-memory "database" ---
-// In a real app, use a proper database (MongoDB, PostgreSQL, etc.)
-const users = [];
+const USERS_FILE = path.join(__dirname, "users.json");
+let users = [];
 let userIdCounter = 1;
+try {
+  if (fs.existsSync(USERS_FILE)) {
+    const data = fs.readFileSync(USERS_FILE, "utf8");
+    users = JSON.parse(data);
+    userIdCounter = users.length ? Math.max(...users.map(u => u.id)) + 1 : 1;
+  }
+} catch (e) {
+  console.error("Failed to load users:", e);
+}
+function saveUsers(){
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
 
 // --- Middleware ---
 app.use(cors()); // Enable Cross-Origin Resource Sharing
@@ -18,7 +30,7 @@ app.use(express.json()); // Enable parsing JSON request bodies
 
 // --- Secret for JWT ---
 // IMPORTANT: In a real application, store this securely (e.g., environment variable)
-const JWT_SECRET = 'your-very-secret-key-here-CHANGE-ME'; // Added a reminder to change this
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 
 // Serve static files from the project root
 app.use(express.static(path.join(__dirname)));
@@ -53,6 +65,7 @@ app.post('/api/register', async (req, res) => {
     // Add user to our "database"
     users.push(newUser);
     console.log('User registered:', newUser.username); // Log for debugging
+    saveUsers();
 
     res.status(201).json({ message: 'User registered successfully!' });
   } catch (error) {
