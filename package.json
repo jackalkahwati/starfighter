@@ -4,7 +4,8 @@
   "description": "Starfighter Synthwave — Frontier Rising (v3.0) 3D space shooter game built with Three.js.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",

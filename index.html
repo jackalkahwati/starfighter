@@ -196,6 +196,10 @@
     import { VignetteShader } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/shaders/VignetteShader.js';
     import { HueSaturationShader } from 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/shaders/HueSaturationShader.js';
 
+    import { createPlayerShip } from "./modules/player.js";
+    import { createMiniGunstar, createForgeHauler, createDroneSwarm, createCommandCarrier } from "./modules/enemies.js";
+    import { setupSounds } from "./modules/audio.js";
+    import { levels } from "./modules/gameConfig.js";
     // Expose the core THREE namespace globally (optional, but keep for now)
     window.THREE = THREE;
 
@@ -226,9 +230,10 @@
     let enemies = [];
     let score = 0;
     let level = 1;
-    let lastSpawnTime = 0;
-    let spawnInterval = 1400; // Initial spawn interval for Level 1 (in ms)
-    let enemySpeed = 0.05;
+    let bloomPass;
+    let frameCount = 0;
+    let perfLastCheck = performance.now();
+    let spawnInterval = levels[0].spawnInterval;
     let playerShield = 100;
     let hudContext;
     let sounds = {};
@@ -383,14 +388,23 @@
         renderer.setClearColor(0x110022, 1); // Dark purple space background
         document.body.appendChild(renderer.domElement);
             
+        if (!("ontouchstart" in window)) {
+            renderer.domElement.addEventListener("click", () => {
+                if (document.pointerLockElement !== renderer.domElement) {
+                    renderer.domElement.requestPointerLock();
+                }
+            });
+            document.addEventListener("pointerlockchange", () => {
+                document.body.style.cursor = document.pointerLockElement ? "none" : "default";
+            });
+        }
             /* ----------------- POST-PROCESSING BLOOM ----------------- */
             // Use directly imported addon names
             composer = new EffectComposer(renderer);
             const renderPass = new RenderPass(scene, camera);
             composer.addPass(renderPass);
 
-            // Neon bloom to give emissive objects a vibrant glow
-            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.6, 0.04, 0.85);
+            bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.6, 0.04, 0.85);
             bloomPass.threshold = 0.3;   // only brightest pixels glow
             bloomPass.strength  = 0.6;   // even softer glow
             bloomPass.radius    = 0.04;  // tighter halo
@@ -560,6 +574,7 @@
             level = 1;
             playerShield = 100;
             // Clear existing enemies/bullets if restarting
+            spawnInterval = levels[0].spawnInterval;
             bullets.forEach(b => { if (b.mesh) scene.remove(b.mesh); });
             bullets = [];
             enemies.forEach(e => scene.remove(e));
@@ -571,164 +586,6 @@
             document.getElementById('banner').style.opacity = '0'; // Hide game over banner
             if (isSoundOn && sounds.music) sounds.music.play(); // Restart music if sound on
     }
-
-    function createPlayerShip() {
-        const shipGroup = new Group();
-
-        // Main fuselage - More angular shape
-        const fuselageShape = new THREE.Shape();
-        fuselageShape.moveTo(0, 0.6);
-        fuselageShape.lineTo(-0.4, 0.2);
-        fuselageShape.lineTo(-0.4, -0.8); // Longer body
-        fuselageShape.lineTo(0.4, -0.8);
-        fuselageShape.lineTo(0.4, 0.2);
-        fuselageShape.lineTo(0, 0.6);
-
-        const extrudeSettings = { depth: 2.5, bevelEnabled: false }; // Longer extrusion
-        const fuselageGeo = new THREE.ExtrudeGeometry(fuselageShape, extrudeSettings);
-        fuselageGeo.center(); // Center the geometry
-        fuselageGeo.rotateX(Math.PI / 2); // Orient correctly
-
-        const fuselageMat = new MeshStandardMaterial({
-            color: 0x3a3a5e, // Darker blue/grey
-            metalness: 0.6,
-            roughness: 0.4,
-            flatShading: true // Gives a low-poly look
-        });
-        const fuselage = new Mesh(fuselageGeo, fuselageMat);
-        shipGroup.add(fuselage);
-
-        // Wings - More aggressive sweep
-        const wingShape = new THREE.Shape();
-        wingShape.moveTo(0.4, 0); // Start attached to fuselage
-        wingShape.lineTo(2.5, -0.5); // Swept back and slightly down
-        wingShape.lineTo(2.0, -1.5); // Angled trailing edge
-        wingShape.lineTo(0.4, -1.0); // Connect back towards fuselage
-
-        const wingExtrudeSettings = { depth: 0.15, bevelEnabled: false }; // Thinner wings
-        const wingGeo = new THREE.ExtrudeGeometry(wingShape, wingExtrudeSettings);
-        wingGeo.translate(0, 0, -0.075); // Center depth
-
-        const wingMat = new MeshStandardMaterial({
-            color: 0x4f4f7a, // Slightly lighter than fuselage
-            metalness: 0.5,
-            roughness: 0.5,
-            flatShading: true
-        });
-
-        // Create left and right wings
-        const wingRight = new Mesh(wingGeo, wingMat);
-        wingRight.position.set(0, 0, -0.2); // Position relative to fuselage center
-        shipGroup.add(wingRight);
-
-        const wingLeft = new Mesh(wingGeo.clone(), wingMat);
-        wingLeft.scale.x = -1; // Mirror geometry
-        wingLeft.position.set(0, 0, -0.2);
-        shipGroup.add(wingLeft);
-
-        // Engine pods (integrated into wings/fuselage)
-        const engineGeo = new THREE.CylinderGeometry(0.25, 0.35, 1.0, 8); // Tapered cylinder
-        engineGeo.rotateX(Math.PI / 2);
-        engineGeo.translate(0, 0, 0.9); // Position towards the back
-
-        const engineMat = new MeshStandardMaterial({
-            color: 0x2c2c4a, // Dark engine color
-            metalness: 0.7,
-            roughness: 0.3,
-            flatShading: true
-        });
-
-        const engineRight = new Mesh(engineGeo, engineMat);
-        engineRight.position.x = 0.8; // Position out on the wing/fuselage join
-        engineRight.position.y = -0.4;
-        shipGroup.add(engineRight);
-
-        const engineLeft = new Mesh(engineGeo.clone(), engineMat);
-        engineLeft.position.x = -0.8;
-        engineLeft.position.y = -0.4;
-        shipGroup.add(engineLeft);
-
-        // Engine Glows (separate meshes for bloom)
-        const engineGlowMat = new MeshBasicMaterial({
-            color: 0x00ffff, // Bright Cyan Glow
-            transparent: true,
-            opacity: 0.8
-        });
-        const engineGlowGeo = new SphereGeometry(0.3, 16, 8); // Simple sphere glow
-        engineGlowGeo.translate(0, 0, 1.4); // Position slightly behind engine pod
-
-        const glowRight = new Mesh(engineGlowGeo, engineGlowMat);
-        glowRight.position.x = 0.8;
-        glowRight.position.y = -0.4;
-        shipGroup.add(glowRight);
-
-        const glowLeft = new Mesh(engineGlowGeo.clone(), engineGlowMat);
-        glowLeft.position.x = -0.8;
-        glowLeft.position.y = -0.4;
-        shipGroup.add(glowLeft);
-
-        // Cockpit - Simple sphere for now, can be detailed later
-        const cockpitGeo = new SphereGeometry(0.3, 16, 16, 0, Math.PI * 2, 0, Math.PI/2);
-        cockpitGeo.rotateX(Math.PI / 2);
-        cockpitGeo.translate(0, 0.25, -0.3); // Position slightly forward and up
-        const cockpitMat = new MeshStandardMaterial({
-            color: 0xaaaaee, // Light blue/grey
-            metalness: 0.2,
-            roughness: 0.1,
-            transparent: true,
-            opacity: 0.5
-        });
-        const cockpit = new Mesh(cockpitGeo, cockpitMat);
-        shipGroup.add(cockpit);
-
-        // Add some emissive cyan details (e.g., lines on wings)
-        const detailMat = new MeshBasicMaterial({ color: 0x00ffff });
-        const lineGeo = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(0.6, -0.2, -0.1), new THREE.Vector3(1.8, -0.6, -0.1), // Top wing line
-            new THREE.Vector3(0.6, -0.8, -0.1), new THREE.Vector3(1.5, -1.2, -0.1) // Bottom wing line
-        ]);
-
-        const detailLinesRight = new THREE.LineSegments(lineGeo, detailMat);
-        shipGroup.add(detailLinesRight);
-
-        const detailLinesLeft = new THREE.LineSegments(lineGeo.clone(), detailMat);
-        detailLinesLeft.scale.x = -1;
-        shipGroup.add(detailLinesLeft);
-
-        // Scale the whole ship slightly if needed
-        shipGroup.scale.setScalar(0.8);
-
-        return shipGroup;
-    }
-
-    function createMountains() {
-        // Create a more detailed mountain geometry with more segments
-        const mountainGeometry = new PlaneGeometry(1000, 200, 80, 30);
-        
-        // Create a solid material with gradient colors for the base mountains
-        const mountainMaterial = new MeshStandardMaterial({
-            color: 0xff00ff,           // Magenta color
-            emissive: 0x000000,        // no emissive to avoid bloom
-            emissiveIntensity: 0.0,
-            wireframe: false,          // Solid, not wireframe
-            flatShading: true,         // Low-poly look
-            opacity: 1.0               // Full opacity
-        });
-
-        // Displace vertices to create more interesting mountain shapes
-        const positionAttribute = mountainGeometry.getAttribute('position');
-        const peakHeight = 50;         // Higher peaks for more visibility
-        const frequency = 0.04;
-        const secondaryFreq = 0.08;    // Secondary frequency for more detail
-
-        // Create array for vertex colors to make a gradient
-        const colors = [];
-        const color1 = new THREE.Color(0xff00ff);  // Magenta (top)
-        const color2 = new THREE.Color(0xaa00ff);  // Purple (middle)
-        const color3 = new THREE.Color(0x330066);  // Dark purple (bottom)
-
-        for (let i = 0; i < positionAttribute.count; i++) {
-            const x = positionAttribute.getX(i);
             const y = positionAttribute.getY(i);
             
             // More complex mountain generation with multiple frequencies
@@ -985,110 +842,6 @@
         player.add(line);
     }
 
-    function setupSounds() {
-        // --- NEW SOUND DEFINITIONS (Replace placeholders with actual paths) ---
-        
-        // Music (Preload this one)
-        sounds.music = new Howl({
-            src: ['./Future Synthwave MIDI Kits - MIDI Klowd - 01 Future Synthwave MIDI Kits - Demo.mp3'],
-            loop: true,
-            volume: 0.6,
-            autoplay: false,
-            preload: true
-        });
-        
-        // Player Weapons (Load on demand)
-        sounds.laser_primary = new Howl({
-            src: ['./mixkit-cinematic-laser-gun-thunder-1287.wav'],
-            volume: 0.8
-        });
-        
-        sounds.laser_twin = new Howl({
-            src: ['./mixkit-laser-weapon-shot-1681.wav'],
-            volume: 0.8
-        });
-        
-        sounds.laser_plasma = new Howl({
-                src: ['./mixkit-sci-fi-battle-laser-shots-2783.wav'],
-            volume: 1.0
-        });
-        
-        sounds.laser_rail = new Howl({
-            src: ['./569900__bigdino1995__explosion.wav'],
-            volume: 0.9
-        });
-        
-        sounds.missile = new Howl({
-            src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
-            volume: 0.8
-        });
-        
-        sounds.db_windup = new Howl({
-            src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
-            volume: 1.0
-        });
-        
-        sounds.deathBlossom = new Howl({
-            src: ['./mixkit-cinematic-laser-swoosh-1467.wav'],
-            volume: 1.0
-        });
-        
-        // Enemy Weapons (Need game logic to trigger these)
-        sounds.plasma_sputter = new Howl({
-            src: ['./mixkit-retro-video-game-bubble-laser-277.wav'],
-            volume: 1.0,
-            pool: 5
-        });
-        sounds.directional_threat = new Howl({
-            src: ['./mixkit-sci-fi-battle-laser-shots-2783.wav'],
-            volume: 1.0,
-            pool: 5
-        });
-
-        // Explosions
-        sounds.explosion_small = new Howl({
-            src: ['./569900__bigdino1995__explosion.wav'],
-            volume: 1.0,
-            pool: 8
-        });
-        sounds.explosion_forge_split = new Howl({ // For Forge-Splitter enemy type later
-            src: ['./mixkit-shatter-shot-explosion-1693.wav'],
-            volume: 1.0,
-            pool: 8
-        });
-        sounds.explosion_shield_node = new Howl({ // For Boss shield nodes later
-            src: ['./mixkit-dramatic-metal-explosion-impact-1687.wav'],
-            volume: 1.0,
-            pool: 8
-        });
-        sounds.explosion_boss_core = new Howl({ // For Boss death later
-            src: ['./661799__robinhood76__11182-futuristing-collapse-explosion.wav'],
-            volume: 1.0,
-            pool: 8
-        });
-
-        // UI & HUD
-        sounds.ui_lock_on = new Howl({
-            src: ['./mixkit-unlock-game-notification-253.wav'],
-            volume: 1.0,
-            pool: 4
-        });
-        sounds.ui_beep = new Howl({
-            src: ['./mixkit-censorship-beep-1082.wav'],
-            volume: 1.0,
-            pool: 4
-        });
-
-        // --- End NEW SOUND DEFINITIONS ---
-        Object.keys(sounds).forEach(key => {
-            sounds[key].on('loaderror', function(id, error) {
-                console.error(key + ' load error: ', error);
-            });
-            sounds[key].on('playerror', function(id, error) {
-                console.error(key + ' play error: ', error);
-            });
-        })
-    }
 
     function initRadar() {
         const radar = document.getElementById('radar');
@@ -1534,6 +1287,14 @@
     
     // Run ticker animations
     ticker.forEach(fn => fn(delta));
+    frameCount++;
+    const now = performance.now();
+    if (now - perfLastCheck > 1000) {
+        const fps = frameCount * 1000 / (now - perfLastCheck);
+        if (bloomPass) bloomPass.enabled = fps > 40;
+        perfLastCheck = now;
+        frameCount = 0;
+    }
     
     // Check if player is dead
     if (playerShield <= 0) {
@@ -1687,21 +1448,7 @@
 
     function spawnEnemy() {
         const enemyType = selectEnemyType();
-        let enemy;
-        if (enemyType === 'miniGunstar') {
-            enemy = createMiniGunstar();
-            enemy.userData = { type: 'miniGunstar', hp: 1, scoreValue: 100 };
-        } else if (enemyType === 'forgeHauler') {
-            enemy = createForgeHauler();
-            enemy.userData = { type: 'forgeHauler', hp: 3, scoreValue: 300 };
-        } else if (enemyType === 'droneSwarm') {
-            enemy = createDroneSwarm();
-            enemy.userData = { type: 'droneSwarm', hp: 1, scoreValue: 150 };
-        } else if (enemyType === 'commandCarrier') {
-            enemy = createCommandCarrier();
-            enemy.userData = { type: 'commandCarrier', hp: 10, scoreValue: 1000 };
-        }
-        // Random position ahead of player
+        const enemy = createEnemy(enemyType);
         enemy.position.set(
             MathUtils.randFloatSpread(30),
             MathUtils.randFloatSpread(15),
@@ -1724,81 +1471,6 @@
         }
     }
 
-    function createMiniGunstar() {
-        // Simple triangular prism shape
-        const shape = new THREE.Shape();
-        const h = 1.0; // height
-        const w = 0.6; // base width
-        shape.moveTo(0, h / 2);
-        shape.lineTo(-w / 2, -h / 2);
-        shape.lineTo(w / 2, -h / 2);
-        shape.lineTo(0, h / 2);
-
-        const extrudeSettings = { depth: 0.4, bevelEnabled: false };
-        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        geometry.center();
-        geometry.rotateX(Math.PI / 2); // Orient horizontally
-
-        const material = new MeshStandardMaterial({
-            color: 0x00ffff, // Cyan
-            emissive: 0x00aaaa, // Darker cyan emissive
-            emissiveIntensity: 0.5,
-            metalness: 0.3,
-            roughness: 0.6,
-            flatShading: true
-        });
-        const gunstar = new Mesh(geometry, material);
-        gunstar.scale.setScalar(0.8); // Make them slightly smaller
-        return gunstar;
-    }
-
-    function createForgeHauler() {
-        // Forge Hauler: Industrial orange torus with cargo pods
-        const group = new Group();
-        const torus = new Mesh(new TorusGeometry(1, 0.3, 8, 16), new MeshStandardMaterial({ color: 0xff6600, wireframe: true }));
-        group.add(torus);
-        // Add 4 small cargo pods as cubes around the torus
-        const podGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-        const podMaterial = new MeshStandardMaterial({ color: 0xffaa00, wireframe: true });
-        const offsets = [ [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0] ];
-        offsets.forEach(offset => {
-            const pod = new Mesh(podGeometry, podMaterial);
-            pod.position.set(offset[0] * 1.2, offset[1] * 1.2, 0);
-            group.add(pod);
-        });
-        return group;
-    }
-
-    function createDroneSwarm() {
-        // Drone Swarm: Group of 8 tiny Gunstar drones
-        const group = new Group();
-        for (let i = 0; i < 8; i++) {
-            const drone = new Mesh(new ConeGeometry(0.3, 1, 8), new MeshStandardMaterial({ color: 0x00ff00, wireframe: true }));
-            const angle = (i / 8) * Math.PI * 2;
-            drone.position.set(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, 0);
-            group.add(drone);
-        }
-        return group;
-    }
-
-    function createCommandCarrier() {
-        // Command Carrier (Boss): Cyan torus hull with shield nodes and a turret
-        const group = new Group();
-        const hull = new Mesh(new TorusGeometry(1.5, 0.4, 16, 32), new MeshStandardMaterial({ color: 0x00ffff, wireframe: true }));
-        group.add(hull);
-        for (let i = 0; i < 4; i++) {
-            const shield = new Mesh(new TorusGeometry(0.4, 0.1, 8, 16), new MeshStandardMaterial({ color: 0x00ffff, emissive: 0x003333, wireframe: true }));
-            const angle = (i / 4) * Math.PI * 2;
-            shield.position.set(Math.cos(angle) * 2, Math.sin(angle) * 2, 0);
-            group.add(shield);
-        }
-        // Add a turret (Mini Gunstar) on the top
-        const turret = createMiniGunstar();
-        turret.position.set(0, 0, 1);
-        turret.userData.isTurret = true;
-        group.add(turret);
-        return group;
-    }
 
     function capsuleDistance2(A, B, radius, P) {
         // Capsule collision helper as per revised roster
@@ -2016,24 +1688,11 @@
     }
 
     function createEnemy(enemyType) {
-        let enemy;
-        if (enemyType === 'miniGunstar') {
-            enemy = createMiniGunstar();
-            enemy.userData = { type: 'miniGunstar', hp: 1, scoreValue: 100 };
-        } else if (enemyType === 'forgeHauler') {
-            enemy = createForgeHauler();
-            enemy.userData = { type: 'forgeHauler', hp: 3, scoreValue: 300 };
-        } else if (enemyType === 'droneSwarm') {
-            enemy = createDroneSwarm();
-            enemy.userData = { type: 'droneSwarm', hp: 1, scoreValue: 150 };
-        } else if (enemyType === 'commandCarrier') {
-            enemy = createCommandCarrier();
-            enemy.userData = { type: 'commandCarrier', hp: 10, scoreValue: 1000 };
-        }
-        return enemy;
+        if (enemyType === "miniGunstar") return createMiniGunstar();
+        if (enemyType === "forgeHauler") return createForgeHauler();
+        if (enemyType === "droneSwarm") return createDroneSwarm();
+        if (enemyType === "commandCarrier") return createCommandCarrier();
     }
-
-        // --- Start the Game ---
     init();
     gameLoop();
 
